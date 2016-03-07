@@ -1,0 +1,46 @@
+package:
+  name: cloudside
+  version: 0.0.1
+
+source:
+  path: ../../
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+build:
+  number: 1
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - metar
+    - matplotlib
+    - pandas
+
+
+  run:
+    - python
+    - metar
+    - matplotlib
+    - pandas
+
+test:
+  imports:
+    - cloudside
+
+  # commands:
+  #   - python -c "import metar; metar.test()"
+
+  requires:
+    - nose
+
+about:
+  home: https://github.com/phobson/cloudside.git
+  license:  BSD 3-clause
+  summary: 'Do stuff with weather data'
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml/configure
