@@ -27,6 +27,7 @@ before_install:
 install:
   - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas nose coverage
   - source activate testenv
+  - conda install --channel=phobson --yes metar
   - pip install coveralls
   - pip install .
 
