@@ -1,9 +1,3 @@
-#!/usr/bin/python
-#
-#  Python module to provide station information from the ICAO identifiers
-#
-#  Copyright 2004  Tom Pollard
-
 # std lib stuff
 import datetime
 import os

@@ -22,10 +22,10 @@ before_install:
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
-  - conda update conda --yes  
+  - conda update conda --yes
 
 install:
-  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas coverage
+  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas nose coverage
   - source activate testenv
   - pip install coveralls
   - pip install .
