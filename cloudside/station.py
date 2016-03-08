@@ -711,27 +711,23 @@ def getStationByID(sta_id):
     return sta
 
 
-def getASOSData(station, startdate, enddate, filename=None):
+def _fetch_data(fetcher_name, station, startdate, enddate, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
 
-    data = station.getASOSData(startdate, enddate, filename=filename)
-    return data
+    fetcher = getattr(station, fetcher_name)
+    return fetcher(startdate, enddate, filename=filename)
+
+
+def getASOSData(station, startdate, enddate, filename=None):
+    return _fetch_data('getASOSData', station, startdate, enddate, filename)
 
 
 def getWundergroundData(station, startdate, enddate, filename=None):
-    if not isinstance(station, WeatherStation):
-        station = getStationByID(station)
-
-    data = station.getWundergroundData(startdate, enddate, filename=filename)
-    return data
+    return _fetch_data('getWundergroundData', station, startdate, enddate, filename)
 
 
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
-    if not isinstance(station, WeatherStation):
-        station = getStationByID(station)
-
-    data = station.getWunderground_NonAirportData(startdate, enddate, filename=filename)
-    return data
+    return _fetch_data('getWunderground_NonAirportData', station, startdate, enddate, filename)
 
 
