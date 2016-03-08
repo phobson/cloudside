@@ -23,9 +23,21 @@ from six.moves import http_cookiejar
 # metar stuff
 import metar
 
-__all__ = ['getAllStations', 'getStationByID', 'WeatherStation',
-           'getASOSData', 'getWundergroundData', 'getWunderground_NonAirportData']
-matplotlib.rcParams['timezone'] = 'UTC'
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = lambda x : x
+
+
+__all__ = [
+    'getAllStations',
+    'getStationByID',
+    'getASOSData',
+    'getWundergroundData',
+    'getWunderground_NonAirportData',
+    'WeatherStation',
+]
 
 
 class WeatherStation(object):
