@@ -209,25 +209,6 @@ class Test_WeatherStation():
             ntools.assert_equal(dd.month, kd.month)
             ntools.assert_equal(dd.day, kd.day)
 
-    def test_check_src(self):
-        station._check_src('asos')
-        station._check_src('wunderground')
-        ntools.assert_raises(ValueError, station._check_src, 'fart')
-
-    def test_check_step(self):
-        station._check_step('flat')
-        station._check_step('raw')
-        ntools.assert_raises(ValueError, station._check_step, 'fart')
-
-    def test_check_file(self):
-        known_results = ['bad', 'ok', 'not there']
-        for n, known_result in enumerate(known_results, 1):
-            fn = getTestFile('testfile{:d}'.format(n))
-            ntools.assert_equal(station._check_file(fn), known_result)
-
-    def test_check_dirs(self):
-        pass
-
     def test_date_asos(self):
         teststring = '24229KPDX PDX20010101000010001/01/01 00:00:31  5-MIN KPDX'
         knowndate = datetime(2001, 1, 1, 0, 0)

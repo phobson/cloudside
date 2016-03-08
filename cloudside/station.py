@@ -23,6 +23,7 @@ from six.moves import http_cookiejar
 # metar stuff
 import metar
 
+from . import validate
 
 try:
     from tqdm import tqdm
@@ -68,6 +69,8 @@ class WeatherStation(object):
         self.country = country
         self.position = metar.datatypes.position(lat, lon)
         self._max_attempts = max_attempts
+        self.lat = lat
+        self.lon = lon
 
         if show_progress:
             self.tracker = tqdm
@@ -123,8 +126,8 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *step* : 'raw' or 'flat' or 'compile'
         '''
-        _check_src(src)
-        _check_step(step)
+        validate.source(src)
+        validate.step(step)
         return os.path.join(self.datadir, self.sta_id, src.lower(), step.lower())
 
     def _find_file(self, timestamp, src, step):
@@ -137,8 +140,8 @@ class WeatherStation(object):
             *step* : 'raw' or 'flat'
         '''
         date = timestamp.to_datetime()
-        _check_src(src)
-        _check_step(step)
+        validate.source(src)
+        validate.step(step)
 
         if step == 'raw':
             ext = 'dat'
@@ -196,7 +199,7 @@ class WeatherStation(object):
         '''
         date = timestamp.to_datetime()
         "http://www.wunderground.com/history/airport/KDCA/1950/12/18/DailyHistory.html?format=1"
-        _check_src(src)
+        validate.source(src)
         if src.lower() == 'wunderground':
             baseurl = 'http://www.wunderground.com/history/airport/%s' % self.sta_id
             endurl = 'DailyHistory.html?&&theprefset=SHOWMETAR&theprefvalue=1&format=1'
@@ -227,11 +230,11 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *step* : 'raw' or 'flat'
         '''
-        _check_src(src)
-        _check_step(step)
+        validate.source(src)
+        validate.step(step)
         destination = self._find_dir(src, step)
         datafile = self._find_file(timestamp, src, step)
-        _check_dirs(destination.split(os.path.sep))
+        validate.data_directory(destination.split(os.path.sep))
         return os.path.join(destination, datafile)
 
     def _fetch_data(self, timestamp, attempt, src='asos', force_download=False):
@@ -278,9 +281,9 @@ class WeatherStation(object):
                 errorfile.write('error on: %s\n' % (url,))
 
             outfile.close()
-            status = _check_file(outname)
+            status = validate.file_status(outname)
         else:
-            status = _check_file(outname)
+            status = validate.file_status(outname)
 
         errorfile.close()
         return status
@@ -312,13 +315,13 @@ class WeatherStation(object):
             *timestamp* : a pandas timestamp object
         '''
         #pdb.set_trace()
-        _check_src(src)
+        validate.source(src)
         rawfilename = self._make_data_file(timestamp, src, 'raw')
         flatfilename = self._make_data_file(timestamp, src, 'flat')
         if not os.path.exists(rawfilename):
             rawstatus, attempt = self._attempt_download(timestamp, src, attempt=0)
         else:
-            rawstatus = _check_file(rawfilename)
+            rawstatus = validate.file_status(rawfilename)
 
         if not os.path.exists(flatfilename) and rawstatus == 'ok':
             datain = open(rawfilename, 'r')
@@ -389,7 +392,7 @@ class WeatherStation(object):
 
             datain.close()
             dataout.close()
-        flatstatus = _check_file(flatfilename)
+        flatstatus = validate.file_status(flatfilename)
         return flatfilename, flatstatus
 
     def _read_csv(self, timestamp, src):
@@ -415,7 +418,7 @@ class WeatherStation(object):
         if not os.path.exists(flatfilename):
             flatfilename, flatstatus = self._process_file(timestamp, src)
 
-        flatstatus = _check_file(flatfilename)
+        flatstatus = validate.file_status(flatfilename)
         if flatstatus == 'ok':
             data = pandas.read_csv(flatfilename, index_col=False, parse_dates=[icol], header=headerrows[src])
             data.set_index(data.columns[icol], inplace=True)
@@ -440,7 +443,7 @@ class WeatherStation(object):
         Returns:
             *data* : a pandas data frame of the data for this station
         '''
-        _check_src(source)
+        validate.source(source)
 
         freq = {
             'asos': 'MS',
@@ -473,7 +476,7 @@ class WeatherStation(object):
 
         if filename is not None:
             compdir = self._find_dir(source, 'compile')
-            _check_dirs(compdir.split(os.path.sep))
+            validate.data_directory(compdir.split(os.path.sep))
             final_data.to_csv(os.path.join(compdir, filename))
 
         return final_data
@@ -543,7 +546,7 @@ class WeatherStation(object):
 
     def _get_compiled_files(self, source):
         compdir = self._find_dir(source, 'compile')
-        _check_dirs(compdir.split(os.path.sep))
+        validate.data_directory(compdir.split(os.path.sep))
         compfiles = os.listdir(compdir)
         return compdir, compfiles
 
@@ -592,56 +595,6 @@ def _parse_date(datestring):
     datenum = mdates.datestr2num(datestring)
     dateval = mdates.num2date(datenum)
     return dateval
-
-
-def _check_src(src):
-    '''
-    checks that a *src* value is valid
-    '''
-    if src.lower() not in ('wunderground', 'asos', 'wunder_nonairport'):
-        raise ValueError('src must be one of "wunderground" or "asos"')
-
-
-def _check_step(step):
-    '''
-    checks that a *step* value is valid
-    '''
-    if step.lower() not in ('raw', 'flat', 'compile'):
-        raise ValueError('step must be one of "raw" or "flat"')
-
-
-def _check_file(filename):
-    '''
-    confirms that a raw file isn't empty
-    '''
-    try:
-        testfile = open(filename, 'r')
-        lines = testfile.readlines()
-        testfile.close()
-        if len(lines) > 1:
-            status = 'ok'
-        else:
-            status = 'bad'
-
-    except IOError:
-        status = 'not there'
-
-    return status
-
-
-def _check_dirs(subdirs):
-    '''
-    checks to see that a directory exists. if not, it makes it.
-    '''
-    if not os.path.exists(subdirs[0]):
-        #print('making '+subdirs[0])
-        os.mkdir(subdirs[0])
-
-    if len(subdirs) > 1:
-        topdir = [os.path.join(subdirs[0], subdirs[1])]
-        for sd in subdirs[2:]:
-            topdir.append(sd)
-        _check_dirs(topdir)
 
 
 def _date_ASOS(metarstring):
