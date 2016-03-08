@@ -469,8 +469,7 @@ class WeatherStation(object):
         # corrected data are appended to the bottom of the ASOS files by NCDC
         # QA people. So for any given date/time index, we want the *last* row
         # that appeared in the data file.
-        grouped_data = data.groupby(level=0, by=['rownum'])
-        final_data = grouped_data.last().drop(['rownum'], axis=1)
+        final_data = data.groupby(level=0).last()
 
         if filename is not None:
             compdir = self._find_dir(source, 'compile')
