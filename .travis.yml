@@ -3,10 +3,6 @@ language: python
 matrix:
   fast_finish: true
   include:
-
-    - python: 2.7
-      env:
-        - COVERAGE=false
     - python: 3.4
       env:
         - COVERAGE=false
