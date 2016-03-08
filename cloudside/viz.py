@@ -3,9 +3,15 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import matplotlib.dates as dates
 import pandas
+import seaborn
 
-__all__ = ['hyetograph', 'rainClock', 'windRose', 'psychromograph',
-           'temperaturePlot']
+__all__ = [
+    'hyetograph',
+    'rainClock',
+    'windRose',
+    'psychromograph',
+    'temperaturePlot'
+]
 
 
 def _resampler(dataframe, col, freq, how='sum', fillna=None):
@@ -147,71 +153,119 @@ def rainClock(dataframe, raincol='Precip', fname=None):
     return fig
 
 
-def windRose(dataframe, speedcol='WindSpd', dircol='WindDir', mph=False,
-             fname=None):
-    '''
-    Plots a Wind Rose. Feed it a dataframe with 'WindSpd' (knots) and
-    'WindDir' degrees clockwise from north (columns)
-    '''
+def _speed_labels(bins, units=None):
+    if units is None:
+        units = ''
 
-    if not hasattr(dataframe, speedcol):
-        raise ValueError('input `dataframe` must have a `%s` column' % speedcol)
+    labels = []
+    for left, right in zip(bins[:-1], bins[1:]):
+        if left == bins[0]:
+            labels.append('calm'.format(right))
+        elif np.isinf(right):
+            labels.append('>{} {}'.format(left, units))
+        else:
+            labels.append('{} - {} {}'.format(left, right, units))
 
-    if not hasattr(dataframe, dircol):
-        raise ValueError('input `dataframe` must have a `%s` column' % dircol)
+    return list(labels)
 
-    # set up the figure
-    fig, ax1 = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    ax1.xaxis.grid(True, which='major', linestyle='-', alpha='0.125', zorder=0)
-    ax1.yaxis.grid(True, which='major', linestyle='-', alpha='0.125', zorder=0)
-    ax1.set_theta_zero_location("N")
-    ax1.set_theta_direction('clockwise')
 
-    # speed bins and colors
-    speedBins = [40, 30, 20, 10, 5]
-    colors = ['#990000', '#FF4719', '#FFCC00', '#579443', '#0066FF']
+def _dir_degrees_to_radins(directions):
+    N = directions.shape[0]
+    barDir = directions * np.pi/180. - np.pi/N
+    barWidth = 2 * np.pi / N
+    return barDir, barWidth
 
-    # number of total and zero-wind observations
-    total = np.float(dataframe.shape[0])
-    if mph:
-        factor =  1.15
-        units = 'mph'
+
+def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
+                      spd_bins=None, spd_labels=None, spd_units=None,
+                      calmspeed=0.1, bin_width=15):
+
+    total_count = dataframe.shape[0]
+    calm_count = dataframe[dataframe[speedcol] <= calmspeed].shape[0]
+
+    if spd_bins is None:
+        spd_bins = [-1, 0, 5, 10, 20, 30, np.inf]
+
+    if spd_labels is None:
+        spd_labels = _speed_labels(spd_bins, units=spd_units)
+
+    dir_bins = np.arange(-0.5 * bin_width, 361 + bin_width * 0.5, bin_width)
+    dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
+
+    rose = (
+        dataframe
+            .assign(Spd_bins=pandas.cut(dataframe[speedcol], bins=spd_bins, labels=spd_labels, right=True))
+            .assign(Dir_bins=pandas.cut(dataframe[dircol], bins=dir_bins, labels=dir_labels, right=False))
+            .replace({'Dir_bins': {360: 0}})
+            .groupby(by=['Spd_bins', 'Dir_bins'])
+            .size()
+            .unstack(level='Spd_bins')
+            .fillna(0)
+            .assign(calm=lambda df: calm_count / df.shape[0])
+            .sort_index(axis=1)
+            .applymap(lambda x: x / total_count)
+    )
+
+    return rose
+
+
+def _plot_windrose(rose, ax=None, palette=None):
+    dir_degrees = np.array(rose.index.tolist())
+    dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
+
+    palette = seaborn.color_palette(palette=palette, n_colors=rose.shape[1])
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
     else:
-        factor = 1
-        units = 'kt'
+        fig = ax.figure
 
-    calm = np.float(dataframe[dataframe[speedcol] == 0].shape[0])/total * 100
+    ax.set_theta_direction('clockwise')
+    ax.set_theta_zero_location('N')
+    ax.yaxis.set_major_formatter(FuncFormatter(_pct_fmt))
 
-    # loop through the speed bins
-    for spd, clr in zip(speedBins, colors):
-        barLen = _get_wind_counts(dataframe, spd, speedcol, dircol, factor=factor)
-        barLen = barLen/total
-        barDir, barWidth = _convert_dir_to_left_radian(np.array(barLen.index))
-        ax1.bar(barDir, barLen, width=barWidth, linewidth=0.50,
-                edgecolor=(0.25, 0.25, 0.25), color=clr, alpha=0.8,
-                label=r"<%d %s" % (spd, units))
+    for n, (c1, c2) in enumerate(zip(rose.columns[:-1], rose.columns[1:])):
+        if n == 0:
+            # first column only
+            ax.bar(dir_rads, rose[c1].values,
+                   width=dir_width,
+                   color=palette[0],
+                   edgecolor='none',
+                   label=c1,
+                   linewidth=0)
 
-    # format the plot's axes
-    ax1.legend(loc='lower right', bbox_to_anchor=(1.10, -0.13), fontsize=8)
-    ax1.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
-    ax1.xaxis.grid(True, which='major', color='k', alpha=0.5)
-    ax1.yaxis.grid(True, which='major', color='k', alpha=0.5)
-    ax1.yaxis.set_major_formatter(FuncFormatter(_pct_fmt))
-    fig.text(0.05, 0.95, 'Calm Winds: %0.1f%%' % calm)
-    #if calm >= 0.1:
-    #    ax1.set_ylim(ymin=np.floor(calm*10)/10.)
+        # all other columns
+        ax.bar(dir_rads, rose[c2].values,
+               width=dir_width,
+               bottom=rose.cumsum(axis=1)[c1].values,
+               color=palette[n+1],
+               edgecolor='none',
+               label=c2,
+               linewidth=0)
 
-    if fname is not None:
-        fig.tight_layout()
-        fig.savefig(fname, dpi=300, bbox_inches='tight')
+    leg = ax.legend(
+        loc=(0.9, -0.1),
+        #ncol=2,
+        ncol=1,
+        fontsize=8,
+        frameon=False
+    )
+    xtl = ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
 
     return fig
 
 
-def _get_wind_counts(dataframe, maxSpeed, speedcol, dircol, factor=1):
-    group = dataframe[dataframe[speedcol]*factor < maxSpeed].groupby(by=dircol)
-    counts = group.size()
-    return counts[counts.index != 0]
+def windRose(dataframe, speedcol='WindSpd', dircol='WindDir',
+             spd_bins=None, spd_labels=None, spd_units=None,
+             calmspeed=0.1, bin_width=15, ax=None,
+             palette='Blues'):
+
+    rose = _compute_windrose(dataframe, speedcol=speedcol, dircol=dircol,
+                             spd_bins=spd_bins, spd_labels=spd_labels,
+                             spd_units=spd_units, calmspeed=calmspeed,
+                             bin_width=bin_width)
+
+    return _plot_windrose(rose, ax=ax, palette=palette)
 
 
 def _pct_fmt(x, pos=0):
@@ -223,19 +277,3 @@ def _convert_dir_to_left_radian(directions):
     barDir = directions * np.pi/180. - np.pi/N
     barWidth = [2 * np.pi / N]*N
     return barDir, barWidth
-
-
-def degrees2radians(degrees):
-    return degrees * np.pi / 180.0
-
-
-def radians2degrees(radians):
-    return radians * 180 / np.pi
-
-
-def avgDirection(directions):
-    radians = degrees2radians(directions)
-    cos = np.cos(radians).sum()
-    sin = np.sin(radians).sum()
-    degree = radians2degrees(np.arctan2(sin, cos))
-    return degree if degree > 0 else degree + 360
