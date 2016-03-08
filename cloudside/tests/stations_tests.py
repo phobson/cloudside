@@ -1,11 +1,11 @@
 import shutil
-import datetime as dt
+from datetime import datetime
 import os
-import sys
-from pkg_resources import resource_filename
 
 import nose.tools as ntools
-import numpy as np
+from unittest import mock
+
+import numpy
 import pandas
 from six.moves.urllib import request
 import matplotlib.dates as mdates
@@ -21,9 +21,9 @@ class FakeClass(object):
 
 @ntools.nottest
 def makeFakeRainData():
-    tdelta = dt.datetime(2001, 1, 1, 1, 5) - dt.datetime(2001, 1, 1, 1, 0)
-    start = dt.datetime(2001, 1, 1, 12, 0)
-    end = dt.datetime(2001, 1, 1, 16, 0)
+    tdelta = datetime(2001, 1, 1, 1, 5) - datetime(2001, 1, 1, 1, 0)
+    start = datetime(2001, 1, 1, 12, 0)
+    end = datetime(2001, 1, 1, 16, 0)
     daterange_num = mdates.drange(start, end, tdelta)
     daterange = mdates.num2date(daterange_num)
 
@@ -37,10 +37,6 @@ def makeFakeRainData():
     return daterange, rain_raw
 
 
-@ntools.nottest
-def getTestFile(filename):
-    return resource_filename("cloudside.tests.data", filename)
-
 
 class Test_WeatherStation():
     def setup(self):
@@ -49,8 +45,8 @@ class Test_WeatherStation():
                                           country='Cascadia', lat=999, lon=999,
                                           max_attempts=self.max_attempts)
         self.sta2 = station.WeatherStation('MWPKO3', max_attempts=self.max_attempts)
-        self.start = dt.datetime(2012, 1, 1)
-        self.end = dt.datetime(2012, 2, 28)
+        self.start = datetime(2012, 1, 1)
+        self.end = datetime(2012, 2, 28)
         self.ts = pandas.DatetimeIndex(start=self.start, freq='D', periods=1)[0]
 
         self.dates, self.fakeprecip = makeFakeRainData()
@@ -206,7 +202,7 @@ class Test_WeatherStation():
 
     def test_parse_dates(self):
         datestrings = ['2012-6-4', 'September 23, 1982']
-        knowndates = [dt.datetime(2012, 6, 4), dt.datetime(1982, 9, 23)]
+        knowndates = [datetime(2012, 6, 4), datetime(1982, 9, 23)]
         for ds, kd in zip(datestrings, knowndates):
             dd = station._parse_date(ds)
             ntools.assert_equal(dd.year, kd.year)
@@ -234,7 +230,7 @@ class Test_WeatherStation():
 
     def test_date_asos(self):
         teststring = '24229KPDX PDX20010101000010001/01/01 00:00:31  5-MIN KPDX'
-        knowndate = dt.datetime(2001, 1, 1, 0, 0)
+        knowndate = datetime(2001, 1, 1, 0, 0)
         ntools.assert_equal(station._date_ASOS(teststring), knowndate)
 
     def test_append_val(self):
@@ -252,44 +248,13 @@ class Test_WeatherStation():
 
     def test_process_precip(self):
         p2 = station._process_precip(self.dates, self.fakeprecip)
-        ntools.assert_true(np.all(p2 <= self.fakeprecip))
+        ntools.assert_true(numpy.all(p2 <= self.fakeprecip))
 
     def test_process_sky_cover(self):
         teststring = 'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 RMK AO2 SLP262 T00390028 53010 $'
         obs = metar.Metar(teststring)
         testval = station._process_sky_cover(obs)
         ntools.assert_equal(testval, 1.0000)
-
-    def test_getAllStations(self):
-        station.getAllStations()
-
-    def test_getStationByID(self):
-        pdx = station.getStationByID('KPDX')
-        ntools.assert_true(isinstance(pdx, station.WeatherStation))
-
-    def test_getASOSData_station(self):
-        station.getASOSData(self.sta, '2012-1-1', '2012-2-1')
-        station.getASOSData(self.sta, '2012-1-1', '2012-2-1', filename='testfile.csv')
-
-    def test_getASOSData_string(self):
-        station.getASOSData('KPDX', '2012-1-1', '2012-2-1')
-        station.getASOSData('KPDX', '2012-1-1', '2012-2-1', filename='testfile.csv')
-
-    def test_getWundergroundData_station(self):
-        station.getWundergroundData(self.sta, '2012-1-1', '2012-2-1')
-        station.getWundergroundData(self.sta, '2012-1-1', '2012-2-1', filename='testfile.csv')
-
-    def test_getWundergroundData_string(self):
-        station.getWundergroundData('KPDX', '2012-1-1', '2012-2-1')
-        station.getWundergroundData('KPDX', '2012-1-1', '2012-2-1', filename='testfile.csv')
-
-    def test_getWunderground_NonAirport_station(self):
-        station.getWunderground_NonAirportData(self.sta2, '2012-1-1', '2012-2-1')
-        station.getWunderground_NonAirportData(self.sta2, '2012-1-1', '2012-2-1', filename='testfile.csv')
-
-    def test_getWunderground_NonAirport_string(self):
-        station.getWunderground_NonAirportData('MWPKO3', '2012-1-1', '2012-2-1')
-        station.getWunderground_NonAirportData('MWPKO3', '2012-1-1', '2012-2-1', filename='testfile.csv')
 
     def test_loadCompData_asos(self):
         self.sta.loadCompiledFile('asos', filename='testfile.csv')
@@ -302,3 +267,67 @@ class Test_WeatherStation():
     def test_loadCompData_wunderground_nonairport(self):
         self.sta2.loadCompiledFile('wunder_nonairport', filename='testfile.csv')
         self.sta2.loadCompiledFile('wunder_nonairport', filenum=1)
+
+
+def test_getAllStations():
+    stations = station.getAllStations()
+    ntools.assert_true(isinstance(stations, dict))
+    known_vals = ('BIST', 'Stykkisholmur', '', 'Iceland', '65-05N', '022-44W')
+    ntools.assert_tuple_equal(stations['BIST'], known_vals)
+
+
+def test_getStationByID():
+    sta = station.getStationByID('KPDX')
+    ntools.assert_true(isinstance(sta, station.WeatherStation))
+    ntools.assert_equal(sta.sta_id, 'KPDX')
+    ntools.assert_equal(sta.city, 'Portland, Portland International Airport')
+    ntools.assert_equal(sta.state, 'OR')
+    ntools.assert_equal(sta.country, 'United States')
+    ntools.assert_equal(sta.lat, '45-35-27N')
+    ntools.assert_equal(sta.lon, '122-36-01W')
+
+
+class BaseDataFetch_Mixin(object):
+    def test_station_fetch_no_file(self):
+        with mock.patch.object(self.station, self.fetcher_name) as gad:
+            self.fetcher(self.station, '2012-1-1', '2012-2-1')
+            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename=None)
+
+    def test_station_fetch_with_file(self):
+        with mock.patch.object(self.station, self.fetcher_name) as gad:
+            self.fetcher(self.station, '2012-1-1', '2012-2-1', filename='test.csv')
+            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename='test.csv')
+
+    def test_string_fetch_no_file(self):
+        with mock.patch.object(station.WeatherStation, self.fetcher_name) as gad:
+            self.fetcher(self.sta_id, '2012-1-1', '2012-2-1')
+            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename=None)
+
+    def test_string_fetch_with_file(self):
+        with mock.patch.object(station.WeatherStation, self.fetcher_name) as gad:
+            self.fetcher(self.sta_id, '2012-1-1', '2012-2-1', filename='test.csv')
+            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename='test.csv')
+
+
+class Test_getASOSData(BaseDataFetch_Mixin):
+    def setup(self):
+        self.sta_id = 'KPDX'
+        self.station = station.WeatherStation(self.sta_id)
+        self.fetcher_name = 'getASOSData'
+        self.fetcher = station.getASOSData
+
+
+class Test_getWundergroundData(BaseDataFetch_Mixin):
+    def setup(self):
+        self.sta_id = 'KPDX'
+        self.station = station.WeatherStation(self.sta_id)
+        self.fetcher_name = 'getWundergroundData'
+        self.fetcher = station.getWundergroundData
+
+
+class Test_getWunderground_NonAirportData(BaseDataFetch_Mixin):
+    def setup(self):
+        self.sta_id = 'MWPKO3'
+        self.station = station.WeatherStation(self.sta_id)
+        self.fetcher_name = 'getWunderground_NonAirportData'
+        self.fetcher = station.getWunderground_NonAirportData
