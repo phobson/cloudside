@@ -60,33 +60,35 @@ class WeatherStation(object):
     """
 
     def __init__(self, sta_id, city=None, state=None, country=None,
-                 lat=None, lon=None, max_attempts=10, show_progress=False):
+                 lat=None, lon=None, max_attempts=10, show_progress=False,
+                 datadir=None):
         self.sta_id = sta_id
         self.city = city
         self.state = state
         self.country = country
         self.position = metar.datatypes.position(lat, lon)
         self._max_attempts = max_attempts
-        self._show_progress = show_progress
+
+        if show_progress:
+            self.tracker = tqdm
+        else:
+            self.tracker = lambda x: x
+
 
         if self.state:
             self.name = "%s, %s" % (self.city, self.state)
         else:
             self.name = self.city
 
-        self.errorfile = 'data/%s_errors.log' % (sta_id,)
+        self.datadir = datadir or os.path.join('data')
+        self.errorfile = os.path.join(self.datadir, '%s_errors.log'.format(sta_id))
         self.data = {}
 
         self._wunderground = None
         self._wunder_nonairport = None
         self._asos = None
 
-    @property
-    def show_progress(self):
-        return self._show_progress
-    @show_progress.setter
-    def show_progress(self, value):
-        self._show_progress = value
+
 
     @property
     def max_attempts(self):
@@ -123,7 +125,7 @@ class WeatherStation(object):
         '''
         _check_src(src)
         _check_step(step)
-        return os.path.join('data', self.sta_id, src.lower(), step.lower())
+        return os.path.join(self.datadir, self.sta_id, src.lower(), step.lower())
 
     def _find_file(self, timestamp, src, step):
         '''
@@ -227,10 +229,10 @@ class WeatherStation(object):
         '''
         _check_src(src)
         _check_step(step)
-        datadir = self._find_dir(src, step)
+        destination = self._find_dir(src, step)
         datafile = self._find_file(timestamp, src, step)
-        _check_dirs(datadir.split(os.path.sep))
-        return os.path.join(datadir, datafile)
+        _check_dirs(destination.split(os.path.sep))
+        return os.path.join(destination, datafile)
 
     def _fetch_data(self, timestamp, attempt, src='asos', force_download=False):
         ''' method that downloads data from a *src* for a *timestamp*
@@ -456,22 +458,13 @@ class WeatherStation(object):
             self.sta_id, ts.strftime('%Y.%m.%d'), status
         )
 
-        if self.show_progress:
-            progress = metar.ProgressBar(timestamps, labelfxn=labelfxn)
-
         data = None
-        for n, ts in enumerate(timestamps):
+        for n, ts in self.tracker(enumerate(timestamps)):
             if data is None:
                 data, status = self._read_csv(ts, source)
             else:
                 newdata, status = self._read_csv(ts, source)
                 data = data.append(newdata)
-
-            if self.show_progress:
-                progress.animate(n+1, status)
-
-        # add a row number to each row
-        data['rownum'] = list(range(data.shape[0]))
 
         # corrected data are appended to the bottom of the ASOS files by NCDC
         # QA people. So for any given date/time index, we want the *last* row
