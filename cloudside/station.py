@@ -85,13 +85,10 @@ class WeatherStation(object):
 
         self.datadir = datadir or os.path.join('data')
         self.errorfile = os.path.join(self.datadir, '%s_errors.log'.format(sta_id))
-        self.data = {}
 
         self._wunderground = None
         self._wunder_nonairport = None
         self._asos = None
-
-
 
     @property
     def max_attempts(self):
@@ -500,7 +497,7 @@ class WeatherStation(object):
         >>> pdx = Station.getStationByID('KPDX')
         >>> data = pdx.getASOSdata(startdate, enddate)
         '''
-        self.data['asos'] = self._get_data(startdate, enddate, 'asos', filename)
+        return self._get_data(startdate, enddate, 'asos', filename)
 
     def getWundergroundData(self, startdate, enddate, filename=None):
         '''
@@ -521,7 +518,7 @@ class WeatherStation(object):
         >>> pdx = Station.getStationByID('KPDX')
         >>> data = pdx.getWundergroundData(startdate, enddate)
         '''
-        self.data['wunder'] = self._get_data(startdate, enddate, 'wunderground', filename)
+        return self._get_data(startdate, enddate, 'wunderground', filename)
 
     def getWunderground_NonAirportData(self, startdate, enddate, filename=None):
         '''
@@ -542,7 +539,7 @@ class WeatherStation(object):
         >>> pdx = Station.getStationByID('KPDX')
         >>> data = pdx.getWunderground_NonAirportData(startdate, enddate)
         '''
-        self.data['wunder_nonairport'] = self._get_data(startdate, enddate, 'wunder_nonairport', filename)
+        return self._get_data(startdate, enddate, 'wunder_nonairport', filename)
 
     def _get_compiled_files(self, source):
         compdir = self._find_dir(source, 'compile')
