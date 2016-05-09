@@ -630,7 +630,7 @@ def _determine_reset_time(date, precip):
     else:
         for n in range(1, len(date)):
             if precip[n] < precip[n-1]:
-                minuteIndex = date[n].minute/5
+                minuteIndex = int(date[n].minute/5)
                 minutes[minuteIndex] += 1
 
         resetTime, = np.where(minutes == minutes.max())

@@ -21,6 +21,7 @@ requirements:
     - matplotlib
     - seaborn
     - pandas
+    - requests
 
 
   run:
@@ -29,13 +30,14 @@ requirements:
     - matplotlib
     - seaborn
     - pandas
+    - requests
 
 test:
   imports:
     - cloudside
 
   commands:
-    - python -c "import metar; metar.test()"
+    - python -c "import cloudside; cloudside.test()"
 
   requires:
     - nose
