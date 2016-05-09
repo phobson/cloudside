@@ -37,7 +37,6 @@ def makeFakeRainData():
     return daterange, rain_raw
 
 
-
 class Test_WeatherStation():
     def setup(self):
         self.max_attempts = 3
@@ -58,7 +57,7 @@ class Test_WeatherStation():
 
     def test_attributes(self):
         attributes = ['sta_id', 'city', 'state', 'country', 'position',
-                      'name', 'wunderground', 'asos', 'errorfile', 'data']
+                      'name', 'wunderground', 'asos', 'errorfile']
         for attr in attributes:
             ntools.assert_true(hasattr(self.sta, attr))
 
@@ -175,21 +174,21 @@ class Test_WeatherStation():
         known_columns = ['Sta', 'Date', 'Precip', 'Temp',
                          'DewPnt', 'WindSpd', 'WindDir',
                          'AtmPress', 'SkyCover']
-        self.sta.getASOSData(self.start, self.end)
-        for col in self.sta.data['asos'].columns:
+        df = self.sta.getASOSData(self.start, self.end)
+        for col in df.columns:
             ntools.assert_in(col, known_columns)
 
-        ntools.assert_true(self.sta.data['asos'].index.is_unique)
+        ntools.assert_true(df.index.is_unique)
 
     def test_getWundergroundData(self):
         known_columns = ['Sta', 'Date', 'Precip', 'Temp',
                          'DewPnt', 'WindSpd', 'WindDir',
                          'AtmPress', 'SkyCover']
-        self.sta.getWundergroundData(self.start, self.end)
-        for col in self.sta.data['wunder'].columns:
+        df = self.sta.getWundergroundData(self.start, self.end)
+        for col in df.columns:
             ntools.assert_in(col, known_columns)
 
-        ntools.assert_true(self.sta.data['wunder'].index.is_unique)
+        ntools.assert_true(df.index.is_unique)
 
     def test_getDataBadSource(self):
         ntools.assert_raises(ValueError, self.sta._get_data, self.start, self.end, 'fart', None)
