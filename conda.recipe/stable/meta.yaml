@@ -3,13 +3,16 @@ package:
   version: 0.0.1
 
 source:
-  path: ../../
+  git_url: https://github.com/phobson/cloudside.git
+  git_tag: v0.0.1
 #  patches:
    # List any patch files here
    # - fix.patch
 
 build:
   number: 1
+  script: python setup.py install
+
 
 requirements:
   build:
@@ -17,6 +20,7 @@ requirements:
     - setuptools
     - metar
     - matplotlib
+    - seaborn
     - pandas
 
 
@@ -24,6 +28,7 @@ requirements:
     - python
     - metar
     - matplotlib
+    - seaborn
     - pandas
 
 test:
