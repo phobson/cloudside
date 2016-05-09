@@ -3,7 +3,10 @@ import os
 from setuptools import setup, find_packages
 
 PACKAGE_DATA = {
-    'metar.data': ['*.txt'],
+    'cloudset.test.data': ['*.txt'],
+    'cloudset.test.data': ['*.png'],
+    'cloudset.test.data': ['*.dat'],
+    'cloudset.test.data': ['*.csv'],
 }
 
 DESCRIPTION = "cloudside - download, assess, and visualize weather data"
