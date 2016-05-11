@@ -1,7 +1,7 @@
 cloudside: download, assess, and visualize weather data
 =======================================================
-.. image:: https://travis-ci.org/phobson/cloudside.svg?branch=master
-    :target: https://travis-ci.org/phobson/cloudside
+.. image:: https://travis-ci.org/Geosyntec/cloudside.svg?branch=master
+    :target: https://travis-ci.org/Geosyntec/cloudside
 
 .. image:: https://coveralls.io/repos/phobson/cloudside/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/phobson/cloudside?branch=master
