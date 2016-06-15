@@ -209,7 +209,7 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     return rose
 
 
-def _plot_windrose(rose, ax=None, palette=None):
+def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
     dir_degrees = np.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
 
@@ -232,7 +232,8 @@ def _plot_windrose(rose, ax=None, palette=None):
                    color=palette[0],
                    edgecolor='none',
                    label=c1,
-                   linewidth=0)
+                   linewidth=0,
+                   **other_opts)
 
         # all other columns
         ax.bar(dir_rads, rose[c2].values,
@@ -241,15 +242,16 @@ def _plot_windrose(rose, ax=None, palette=None):
                color=palette[n+1],
                edgecolor='none',
                label=c2,
-               linewidth=0)
+               linewidth=0,
+               **other_opts)
 
-    leg = ax.legend(
-        loc=(0.9, -0.1),
-        #ncol=2,
-        ncol=1,
-        fontsize=8,
-        frameon=False
-    )
+    if show_legend:
+        leg = ax.legend(
+            loc=(0.9, -0.1),
+            ncol=1,
+            fontsize=8,
+            frameon=False
+        )
     xtl = ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
 
     return fig
@@ -258,14 +260,14 @@ def _plot_windrose(rose, ax=None, palette=None):
 def windRose(dataframe, speedcol='WindSpd', dircol='WindDir',
              spd_bins=None, spd_labels=None, spd_units=None,
              calmspeed=0.1, bin_width=15, ax=None,
-             palette='Blues'):
+             palette='Blues', show_legend=True, **bar_opts):
 
     rose = _compute_windrose(dataframe, speedcol=speedcol, dircol=dircol,
                              spd_bins=spd_bins, spd_labels=spd_labels,
                              spd_units=spd_units, calmspeed=calmspeed,
                              bin_width=bin_width)
 
-    return _plot_windrose(rose, ax=ax, palette=palette)
+    return _plot_windrose(rose, ax=ax, palette=palette, show_legend=show_legend, **bar_opts)
 
 
 def _pct_fmt(x, pos=0):
