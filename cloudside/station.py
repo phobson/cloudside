@@ -7,6 +7,9 @@ import codecs
 from contextlib import closing
 from io import TextIOWrapper
 from pkg_resources import resource_string
+from urllib import request, error, parse
+from http import cookiejar
+
 
 # math stuff
 import numpy as np
@@ -14,11 +17,6 @@ import matplotlib
 import matplotlib.dates as mdates
 import pandas
 
-#compat
-from six.moves.urllib import request
-from six.moves.urllib import error
-from six.moves.urllib import parse
-from six.moves import http_cookiejar
 
 # metar stuff
 import metar
@@ -159,7 +157,7 @@ class WeatherStation(object):
         input:
             *src* : 'asos' or 'wunderground' or 'wunder_nonairport'
         '''
-        jar = http_cookiejar.CookieJar()
+        jar = cookiejar.CookieJar()
         handler = request.HTTPCookieProcessor(jar)
         opener = request.build_opener(handler)
         try:

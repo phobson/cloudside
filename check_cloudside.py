@@ -1,5 +1,7 @@
+import sys
 import matplotlib
 matplotlib.use('agg')
 
-import nose
-nose.main()
+import cloudside
+status = cloudside.test(*sys.argv[1:])
+sys.exit(status)

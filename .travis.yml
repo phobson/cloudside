@@ -18,14 +18,19 @@ before_install:
   - conda update conda --yes
 
 install:
-  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas nose coverage requests
+  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas pytest coverage requests
   - source activate testenv
   - conda install --channel=phobson --yes metar
+  - conda install --channel=conda-forge --yes pytest-mpl pytest-cov
   - pip install coveralls
   - pip install .
 
 script:
-  - python check_cloudside.py --with-coverage --cover-package=cloudside --verbose
+  - python check_cloudside.py --mpl --verbose
 
 after_success:
-  - if [ ${COVERAGE} = true ]; then coveralls; fi
+  - if [ ${COVERAGE} = true ]; then
+      coverage run --source cloudside check_cloudside.py;
+      coverage report -m;
+      coveralls;
+    fi

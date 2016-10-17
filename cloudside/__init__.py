@@ -1,8 +1,6 @@
 #!/usr/bin/python
 __author__ = "Paul Hobson"
-
 __email__ = "pmhobson@gmail.com"
-
 __version__ = "0.0.1"
 
 
