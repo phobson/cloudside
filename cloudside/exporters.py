@@ -72,15 +72,16 @@ def SWMM5Format(dataframe, stationid, col='Precip', freq='hourly', dropzeros=Tru
 
     # set the precip column's name and make the series a dataframe
     data.name = col.lower()
-    data = pandas.DataFrame(data)
-
-    # add all of the data/time columns
-    data['station'] = stationid
-    data['year'] = data.index.year
-    data['month'] = data.index.month
-    data['day'] = data.index.day
-    data['hour'] = data.index.hour
-    data['minute'] = data.index.minute
+    data = (
+        pandas.DataFrame(data)
+            .assign(station=stationid)
+            .assign(year=lambda df: df.index.year)
+            .assign(month=lambda df: df.index.month)
+            .assign(day=lambda df: df.index.day)
+            .assign(hour=lambda df: df.index.hour)
+            .assign(minute=lambda df: df.index.minute)
+            .assign(precip=lambda df: df['precip'].round(2))
+    )
 
     # drop the zeros if we need to
     if dropzeros:
@@ -92,7 +93,6 @@ def SWMM5Format(dataframe, stationid, col='Precip', freq='hourly', dropzeros=Tru
 
     # force the order of columns that we need
     data = data[['station', 'year', 'month', 'day', 'hour', 'minute', 'precip']]
-    data.precip = np.round(data.precip, 2)
 
     # export and return the data
     data.to_csv(filename, index=False, sep=sep)
@@ -113,13 +113,14 @@ def NCDCFormat(dataframe, coopid, statename, col='Precip', filename=None):
     data, rule, plotkind = _resampler(dataframe, col, freq='hourly', how='sum')
     data.index.names = ['Datetime']
     data.name = col
-    data = pandas.DataFrame(data)
-    data = pandas.DataFrame(data[data[col] > 0])
-    data['Date'] = data.index.date
-    data['Hour'] = data.index.hour
-    data['Hour'] += 1
-    data = data.reset_index().set_index(['Date', 'Hour'])[[col]]
-    data = data.unstack(level='Hour')[col]
+    data = (
+        pandas.DataFrame(data[data > 0])
+            .assign(Date=lambda df: df.index.date)
+            .assign(Hour=lambda df: df.index.hour + 1)
+            .reset_index()
+            .set_index(['Date', 'Hour'])[[col]]
+            .unstack(level='Hour')[col]
+    )
 
     def makeNCDCRow(row, flags=None):
         newrow = row.dropna() * 100
