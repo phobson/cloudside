@@ -189,7 +189,7 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     if spd_labels is None:
         spd_labels = _speed_labels(spd_bins, units=spd_units)
 
-    dir_bins = np.arange(-0.5 * bin_width, 361 + bin_width * 0.5, bin_width)
+    dir_bins = np.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
     dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
     rose = (

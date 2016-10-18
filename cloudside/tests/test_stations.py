@@ -2,24 +2,25 @@ import shutil
 from datetime import datetime
 import os
 
-import nose.tools as ntools
+import pytest
 from unittest import mock
 
 import numpy
 import pandas
-from six.moves.urllib import request
+from urllib import request
 import matplotlib.dates as mdates
+
+import pytest
 
 from cloudside import station
 import metar
 
-@ntools.nottest
+
 class FakeClass(object):
     def value(self):
         return 'item2'
 
 
-@ntools.nottest
 def makeFakeRainData():
     tdelta = datetime(2001, 1, 1, 1, 5) - datetime(2001, 1, 1, 1, 0)
     start = datetime(2001, 1, 1, 12, 0)
@@ -59,7 +60,7 @@ class Test_WeatherStation():
         attributes = ['sta_id', 'city', 'state', 'country', 'position',
                       'name', 'wunderground', 'asos', 'errorfile']
         for attr in attributes:
-            ntools.assert_true(hasattr(self.sta, attr))
+            assert hasattr(self.sta, attr)
 
     def test_find_dir(self):
         testdir = self.sta._find_dir('asos', 'raw')
@@ -69,7 +70,7 @@ class Test_WeatherStation():
         else:
             knowndir = 'data\\%s\\asos\\raw' % self.sta.sta_id
 
-        ntools.assert_equal(testdir, knowndir)
+        assert testdir == knowndir
 
     def test_find_file(self):
         testfile1 = self.sta._find_file(self.ts, 'asos', 'raw')
@@ -78,12 +79,12 @@ class Test_WeatherStation():
         knownfile1 = '%s_201201.dat' % self.sta.sta_id
         knownfile2 = '%s_20120101.csv' % self.sta.sta_id
 
-        ntools.assert_equal(testfile1, knownfile1)
-        ntools.assert_equal(testfile2, knownfile2)
+        assert testfile1 == knownfile1
+        assert testfile2 == knownfile2
 
     def test_set_cookies(self):
-        ntools.assert_true(isinstance(self.sta.asos, request.OpenerDirector))
-        ntools.assert_true(isinstance(self.sta.wunderground, request.OpenerDirector))
+        assert isinstance(self.sta.asos, request.OpenerDirector)
+        assert isinstance(self.sta.wunderground, request.OpenerDirector)
 
     def test_url_by_date(self):
         testurl1 = self.sta._url_by_date(self.ts, src='wunderground')
@@ -94,8 +95,8 @@ class Test_WeatherStation():
         knownurl2 = "ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin" \
                     "/6401-2012/64010%s201201.dat" % self.sta.sta_id
 
-        ntools.assert_equal(testurl1, knownurl1)
-        ntools.assert_equal(testurl2, knownurl2)
+        assert testurl1 == knownurl1
+        assert testurl2 == knownurl2
 
     def test_make_data_file(self):
         testfile1 = self.sta._make_data_file(self.ts, 'wunderground', 'flat')
@@ -106,29 +107,29 @@ class Test_WeatherStation():
         knownfile2 = os.path.join('data', self.sta.sta_id, 'asos',
                                   'raw', '{}_201201.dat'.format(self.sta.sta_id))
 
-        ntools.assert_equal(testfile1, knownfile1)
-        ntools.assert_equal(testfile2, knownfile2)
+        assert testfile1 == knownfile1
+        assert testfile2 == knownfile2
 
     def test_fetch_data(self):
         status_asos = self.sta._fetch_data(self.ts, 1, src='asos')
         status_wund = self.sta._fetch_data(self.ts, 1, src='wunderground')
         known_statuses = ['ok', 'bad', 'not there']
-        ntools.assert_in(status_asos, known_statuses)
-        ntools.assert_in(status_wund, known_statuses)
+        assert status_asos in known_statuses
+        assert status_wund in known_statuses
 
     def test_attempt_download(self):
         status_asos, attempt1 = self.sta._attempt_download(self.ts, src='asos')
         status_wund, attempt2 = self.sta._attempt_download(self.ts, src='wunderground')
         known_statuses = ['ok', 'bad', 'not there']
-        ntools.assert_in(status_asos, known_statuses)
-        ntools.assert_in(status_wund, known_statuses)
+        assert status_asos in known_statuses
+        assert status_wund in known_statuses
         self.ts2 = pandas.DatetimeIndex(start='1999-1-1', freq='D', periods=1)[0]
         status_fail, attempt3 = self.sta._attempt_download(self.ts2, src='asos')
-        ntools.assert_equal(status_fail, 'not there')
+        assert status_fail == 'not there'
 
-        ntools.assert_less_equal(attempt1, self.max_attempts)
-        ntools.assert_less_equal(attempt2, self.max_attempts)
-        ntools.assert_equal(attempt3, self.max_attempts)
+        assert attempt1 <= self.max_attempts
+        assert attempt2 <= self.max_attempts
+        assert attempt3 == self.max_attempts
 
     def test_process_file_asos(self):
         filename, status = self.sta._process_file(self.ts, 'asos')
@@ -138,9 +139,9 @@ class Test_WeatherStation():
         else:
             knownfile = 'data\\%s\\asos\\flat\\%s_201201.csv' % (self.sta.sta_id, self.sta.sta_id)
 
-        ntools.assert_equal(filename, knownfile)
+        assert filename == knownfile
         known_statuses = ['ok', 'bad', 'not there']
-        ntools.assert_in(status, known_statuses)
+        assert status in known_statuses
 
     def test_process_file_wunderground(self):
         filename, status = self.sta._process_file(self.ts, 'wunderground')
@@ -150,9 +151,9 @@ class Test_WeatherStation():
         else:
             knownfile = 'data\\%s\\wunderground\\flat\\%s_20120101.csv' % (self.sta.sta_id, self.sta.sta_id)
 
-        ntools.assert_equal(filename, knownfile)
+        assert filename == knownfile
         known_statuses = ['ok', 'bad', 'not there']
-        ntools.assert_in(status, known_statuses)
+        assert status in known_statuses
 
     def test_read_csv_asos(self):
         data, status = self.sta._read_csv(self.ts, 'asos')
@@ -160,7 +161,7 @@ class Test_WeatherStation():
                          'DewPnt', 'WindSpd', 'WindDir',
                          'AtmPress', 'SkyCover']
         for col in data.columns:
-            ntools.assert_in(col, known_columns)
+            assert col in known_columns
 
     def test_read_csv_wunderground(self):
         data, status = self.sta._read_csv(self.ts, 'wunderground')
@@ -168,7 +169,7 @@ class Test_WeatherStation():
                          'DewPnt', 'WindSpd', 'WindDir',
                          'AtmPress', 'SkyCover']
         for col in data.columns:
-            ntools.assert_in(col, known_columns)
+            assert col in known_columns
 
     def test_getASOSData(self):
         known_columns = ['Sta', 'Date', 'Precip', 'Temp',
@@ -176,9 +177,9 @@ class Test_WeatherStation():
                          'AtmPress', 'SkyCover']
         df = self.sta.getASOSData(self.start, self.end)
         for col in df.columns:
-            ntools.assert_in(col, known_columns)
+            assert col in known_columns
 
-        ntools.assert_true(df.index.is_unique)
+        assert df.index.is_unique
 
     def test_getWundergroundData(self):
         known_columns = ['Sta', 'Date', 'Precip', 'Temp',
@@ -186,12 +187,13 @@ class Test_WeatherStation():
                          'AtmPress', 'SkyCover']
         df = self.sta.getWundergroundData(self.start, self.end)
         for col in df.columns:
-            ntools.assert_in(col, known_columns)
+            assert col in known_columns
 
-        ntools.assert_true(df.index.is_unique)
+        assert df.index.is_unique
 
     def test_getDataBadSource(self):
-        ntools.assert_raises(ValueError, self.sta._get_data, self.start, self.end, 'fart', None)
+        with pytest.raises(ValueError):
+            self.sta._get_data(self.start, self.end, 'fart', None)
 
     def test_getDataGoodSource(self):
         self.sta._get_data(self.start, self.end, 'asos', None)
@@ -204,14 +206,14 @@ class Test_WeatherStation():
         knowndates = [datetime(2012, 6, 4), datetime(1982, 9, 23)]
         for ds, kd in zip(datestrings, knowndates):
             dd = station._parse_date(ds)
-            ntools.assert_equal(dd.year, kd.year)
-            ntools.assert_equal(dd.month, kd.month)
-            ntools.assert_equal(dd.day, kd.day)
+            assert dd.year == kd.year
+            assert dd.month == kd.month
+            assert dd.day == kd.day
 
     def test_date_asos(self):
         teststring = '24229KPDX PDX20010101000010001/01/01 00:00:31  5-MIN KPDX'
         knowndate = datetime(2001, 1, 1, 0, 0)
-        ntools.assert_equal(station._date_ASOS(teststring), knowndate)
+        assert station._date_ASOS(teststring) == knowndate
 
     def test_append_val(self):
         x = FakeClass()
@@ -219,22 +221,22 @@ class Test_WeatherStation():
         testlist = ['item1']
         testlist = station._append_val(x, testlist)
         testlist = station._append_val(None, testlist)
-        ntools.assert_list_equal(testlist, knownlist)
+        assert testlist == knownlist
 
     def test_determine_reset_time(self):
         test_rt = station._determine_reset_time(self.dates, self.fakeprecip)
         known_rt = 0
-        ntools.assert_equal(known_rt, test_rt)
+        assert known_rt == test_rt
 
     def test_process_precip(self):
         p2 = station._process_precip(self.dates, self.fakeprecip)
-        ntools.assert_true(numpy.all(p2 <= self.fakeprecip))
+        assert numpy.all(p2 <= self.fakeprecip)
 
     def test_process_sky_cover(self):
         teststring = 'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 RMK AO2 SLP262 T00390028 53010 $'
         obs = metar.Metar(teststring)
         testval = station._process_sky_cover(obs)
-        ntools.assert_equal(testval, 1.0000)
+        assert testval == 1.0000
 
     def test_loadCompData_asos(self):
         self.sta.loadCompiledFile('asos', filename='testfile.csv')
@@ -251,20 +253,20 @@ class Test_WeatherStation():
 
 def test_getAllStations():
     stations = station.getAllStations()
-    ntools.assert_true(isinstance(stations, dict))
+    assert isinstance(stations, dict)
     known_vals = ('BIST', 'Stykkisholmur', '', 'Iceland', '65-05N', '022-44W')
-    ntools.assert_tuple_equal(stations['BIST'], known_vals)
+    assert stations['BIST'] == known_vals
 
 
 def test_getStationByID():
     sta = station.getStationByID('KPDX')
-    ntools.assert_true(isinstance(sta, station.WeatherStation))
-    ntools.assert_equal(sta.sta_id, 'KPDX')
-    ntools.assert_equal(sta.city, 'Portland, Portland International Airport')
-    ntools.assert_equal(sta.state, 'OR')
-    ntools.assert_equal(sta.country, 'United States')
-    ntools.assert_equal(sta.lat, '45-35-27N')
-    ntools.assert_equal(sta.lon, '122-36-01W')
+    assert isinstance(sta, station.WeatherStation)
+    assert sta.sta_id == 'KPDX'
+    assert sta.city == 'Portland, Portland International Airport'
+    assert sta.state == 'OR'
+    assert sta.country == 'United States'
+    assert sta.lat == '45-35-27N'
+    assert sta.lon == '122-36-01W'
 
 
 class BaseDataFetch_Mixin(object):
