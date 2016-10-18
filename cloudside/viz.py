@@ -192,7 +192,7 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     dir_bins = np.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
     dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
-    rose = (
+    raw_rose = (
         dataframe
             .assign(Spd_bins=pandas.cut(dataframe[speedcol], bins=spd_bins, labels=spd_labels, right=True))
             .assign(Dir_bins=pandas.cut(dataframe[dircol], bins=dir_bins, labels=dir_labels, right=False))
@@ -206,7 +206,27 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
             .applymap(lambda x: x / total_count)
     )
 
-    return rose
+    # short data records might not be able to fill out all of the speed
+    # and direction bins. So we have to make a "complete" template
+    # to poputate with the results that we do have
+    _rows = pandas.CategoricalIndex(
+        data=raw_rose.index.categories.values,
+        categories=raw_rose.index.categories,
+        ordered=True, name='Dir_bins',
+    )
+    _cols = pandas.CategoricalIndex(
+        data=raw_rose.columns.categories.values,
+        categories=raw_rose.columns.categories,
+        ordered=True, name='Spd_bins',
+    )
+
+    # we'll fill this this template with all zeroes so that we can
+    # just add it to out computed rose data.
+    rose_template = pandas.DataFrame(0, index=_rows, columns=_cols)
+
+    # .add returns NA where both elements don't exists, so we
+    # can just fill all of those with zeros again
+    return rose_template.add(raw_rose, fill_value=0)
 
 
 def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
