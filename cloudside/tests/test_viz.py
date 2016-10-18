@@ -29,6 +29,22 @@ def test_data():
 
 
 @pytest.fixture
+def short_data():
+    data = pandas.read_csv(StringIO(dedent("""\
+        Date,Sta,Precip,Temp,DewPnt,WindSpd,WindDir,AtmPress,SkyCover
+        1971-09-07 00:00:00,KGRB,0.0,25.0,15.0,8.0,240.0,1010.5,0.75
+        1971-09-07 03:00:00,KGRB,0.0,18.9,13.9,5.0,260.0,1011.6,0.4375
+        1971-09-07 06:00:00,KGRB,0.0,16.7,12.8,4.0,280.0,1012.5,0.0
+        1971-09-07 09:00:00,KGRB,0.0,12.8,11.7,4.0,220.0,1013.6,0.0
+        1971-09-07 12:00:00,KGRB,0.0,13.3,11.1,3.0,230.0,1014.8,0.0
+        1971-09-07 15:00:00,KGRB,0.0,22.2,16.1,4.0,180.0,1015.4,0.0
+        1971-09-07 18:00:00,KGRB,0.0,26.7,15.6,5.0,240.0,1014.2,0.0
+        1971-09-07 21:00:00,KGRB,0.0,28.9,15.0,7.0,200.0,1012.6,0.0
+    """)), parse_dates=True, index_col=['Date'])
+    return data
+
+
+@pytest.fixture
 def frequencies():
     return ['5min', 'hourly', 'daily', 'weekly']
 
@@ -44,6 +60,14 @@ def test_windrose(test_data):
     fig, (ax1, ax2) = plt.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
     _ = viz.windRose(test_data.assign(WindSpd=test_data['WindSpd'] * 1.15), spd_units='mph', ax=ax1)
     _ = viz.windRose(test_data, spd_units='kt', ax=ax2)
+    return fig
+
+
+@pytest.mark.mpl_image_compare(baseline_dir=BASELINE_DIR, tolerance=TOLERANCE)
+def test_windrose_short(short_data):
+    fig, (ax1, ax2) = plt.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    _ = viz.windRose(short_data.assign(WindSpd=short_data['WindSpd'] * 1.15), spd_units='mph', ax=ax1)
+    _ = viz.windRose(short_data, spd_units='kt', ax=ax2)
     return fig
 
 
@@ -101,7 +125,7 @@ def test__compute_windrose(test_data):
     nptest.assert_array_equal(rose.index.values, expected.index.values)
 
 
-def test__compute_windorose_short_record():
+def test__compute_windorose_short_record(short_data):
     expected = pandas.read_csv(StringIO(dedent("""\
         Dir_bins,calm,0 - 5 ,5 - 10 ,10 - 20 ,20 - 30 ,">30 "
         0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -130,19 +154,7 @@ def test__compute_windorose_short_record():
         345.0,0.0,0.0,0.0,0.0,0.0,0.0
     """)), index_col=['Dir_bins']).rename_axis('Spd_bins', axis='columns')
 
-    data = pandas.read_csv(StringIO(dedent("""\
-        Date,Sta,Precip,Temp,DewPnt,WindSpd,WindDir,AtmPress,SkyCover
-        1971-09-07 00:00:00,KGRB,0.0,25.0,15.0,8.0,240.0,1010.5,0.75
-        1971-09-07 03:00:00,KGRB,0.0,18.9,13.9,5.0,260.0,1011.6,0.4375
-        1971-09-07 06:00:00,KGRB,0.0,16.7,12.8,4.0,280.0,1012.5,0.0
-        1971-09-07 09:00:00,KGRB,0.0,12.8,11.7,4.0,220.0,1013.6,0.0
-        1971-09-07 12:00:00,KGRB,0.0,13.3,11.1,3.0,230.0,1014.8,0.0
-        1971-09-07 15:00:00,KGRB,0.0,22.2,16.1,4.0,180.0,1015.4,0.0
-        1971-09-07 18:00:00,KGRB,0.0,26.7,15.6,5.0,240.0,1014.2,0.0
-        1971-09-07 21:00:00,KGRB,0.0,28.9,15.0,7.0,200.0,1012.6,0.0
-    """)), parse_dates=True, index_col=['Date'])
-
-    rose = viz._compute_windrose(data)
+    rose = viz._compute_windrose(short_data)
 
     nptest.assert_allclose(rose.values, expected.values, rtol=0.001)
     nptest.assert_array_equal(rose.columns.values, expected.columns.values)
