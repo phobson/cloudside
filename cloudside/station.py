@@ -28,7 +28,8 @@ from . import validate
 try:
     from tqdm import tqdm
 except ImportError:
-    tqdm = lambda x : x
+    def tqdm(x):
+        return x
 
 
 __all__ = [
@@ -39,7 +40,6 @@ __all__ = [
     'getWunderground_NonAirportData',
     'WeatherStation',
 ]
-
 
 
 class _Metar(Metar.Metar):
@@ -126,16 +126,18 @@ class _Metar(Metar.Metar):
 
                 igroup += 1
                 if igroup == ngroup and not m:
-                    # print("** it's not a main-body group **")
                     pattern, handler = (UNPARSED_RE, _unparsedGroup)
                     logging.debug(handler.__name__, ":", code)
                     m = pattern.match(code)
                     logging.debug(Metar._report_match(handler, m.group()))
-                    handler(self,m.groupdict())
+                    handler(self, m.groupdict())
                     code = code[m.end():]
                     igroup = ifailed
-                    ifailed = -2  # if it's still -2 when we run out of main-body
-                                  #  groups, we'll try parsing this group as a remark
+
+                    # if it's still -2 when we run out of main-body
+                    #  groups, we'll try parsing this group as a remark
+                    ifailed = -2
+
             if pattern == REMARK_RE or self.press:
                 while code:
                     for pattern, handler in Metar.remark_handlers:
@@ -143,16 +145,16 @@ class _Metar(Metar.Metar):
                         m = pattern.match(code)
                         if m:
                             logging.debug(Metar._report_match(handler, m.group()))
-                            handler(self,m.groupdict())
-                            code = pattern.sub("",code,1)
+                            handler(self, m.groupdict())
+                            code = pattern.sub("", code, 1)
                             break
 
         except Exception as err:
-            logging.error("failed while processing '"+code+"'\n"+" ".join(err.args))
+            logging.error("failed while processing '" + code + "'\n" + " ".join(err.args))
 
         if self._unparsed_groups:
             code = ' '.join(self._unparsed_groups)
-            logging.error("Unparsed groups in body: "+code)
+            logging.error("Unparsed groups in body: " + code)
 
 
 class WeatherStation(object):
@@ -209,6 +211,7 @@ class WeatherStation(object):
     @property
     def max_attempts(self):
         return self._max_attempts
+
     @max_attempts.setter
     def max_attempts(self, value):
         self._max_attempts = value
@@ -481,7 +484,7 @@ class WeatherStation(object):
                 else:
                     final_precip = rains
 
-                for row in zip([self.sta_id]*rains.shape[0], dates, final_precip,
+                for row in zip([self.sta_id] * rains.shape[0], dates, final_precip,
                                temps, dewpt, windspd, winddir, press, cover):
                     dataout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % row)
 
@@ -493,7 +496,6 @@ class WeatherStation(object):
                     'SolarRadiationWatts/m^2,SoftwareType,DateUTC\n'
                 )
 
-                #dataout.write(headers)
                 dataout.write(datain.read())
 
             datain.close()
@@ -562,10 +564,6 @@ class WeatherStation(object):
                                               freq=freq[source])
         except KeyError:
             raise ValueError('source must be either "ASOS" or "wunderground"')
-
-        labelfxn = lambda ts, status: '{} {}: {}'.format(
-            self.sta_id, ts.strftime('%Y.%m.%d'), status
-        )
 
         data = None
         for n, ts in self.tracker(enumerate(timestamps)):
@@ -667,7 +665,7 @@ class WeatherStation(object):
             start = cdata[1].split(',')[0]
             end = cdata[-1].split(',')[0]
             cfile.close()
-            print(('%d) %s - start: %s\tend: %s' % (n+1, cf, start, end)))
+            print(('%d) %s - start: %s\tend: %s' % (n + 1, cf, start, end)))
 
     def loadCompiledFile(self, source, filename=None, filenum=None):
         if filename is None and filenum is None:
@@ -678,7 +676,7 @@ class WeatherStation(object):
         if N > 0:
             if filenum is not None:
                 if 0 < filenum <= N:
-                    filename = compfiles[filenum-1]
+                    filename = compfiles[filenum - 1]
                 else:
                     raise ValueError('file number must be between 1 and %d' % N)
             elif filename not in compfiles:
@@ -738,12 +736,12 @@ def _determine_reset_time(date, precip):
         raise ValueError("date and precip must be same length")
     else:
         for n in range(1, len(date)):
-            if precip[n] < precip[n-1]:
-                minuteIndex = int(date[n].minute/5)
+            if precip[n] < precip[n - 1]:
+                minuteIndex = int(date[n].minute / 5)
                 minutes[minuteIndex] += 1
 
         resetTime, = np.where(minutes == minutes.max())
-        return resetTime[0]*5
+        return resetTime[0] * 5
 
 
 def _process_precip(dateval, p1):
@@ -751,19 +749,18 @@ def _process_precip(dateval, p1):
     p = precip data (list)
     dt = list of datetime objects
     RT = point in the hour when the tip counter resets
-    #if (p1[n-1] <= p1[n]) and (dt[n].minute != RT):'''
+    #if (p1[n - 1] <= p1[n]) and (dt[n].minute != RT):'''
     RT = _determine_reset_time(dateval, p1)
     p2 = np.zeros(len(p1))
     p2[0] = p1[0]
     for n in range(1, len(p1)):
 
-        tdelta = dateval[n] - dateval[n-1]
-        if p1[n] < p1[n-1] or dateval[n].minute == RT or tdelta.seconds/60 != 5:
+        tdelta_minutes = (dateval[n] - dateval[n - 1]).seconds / 60
+        if p1[n] < p1[n - 1] or dateval[n].minute == RT or tdelta_minutes != 5:
             p2[n] = p1[n]
 
-        #elif tdelta.seconds/60 == 5 and dateval[n].minute != RT:
         else:
-            p2[n] = (float(p1[n]) - float(p1[n-1]))
+            p2[n] = (float(p1[n]) - float(p1[n - 1]))
 
     return p2
 
@@ -835,5 +832,3 @@ def getWundergroundData(station, startdate, enddate, filename=None):
 
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
     return _fetch_data('getWunderground_NonAirportData', station, startdate, enddate, filename)
-
-
