@@ -92,21 +92,21 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
 def hyetograph(dataframe, freq='hourly', ax=None, downward=True, col='Precip', fname=None):
     ylabel = '%s Rainfall Depth (in)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq, fillna=0,
-                       how='sum', ax=ax, downward=downward, fname=fname)
+                   how='sum', ax=ax, downward=downward, fname=fname)
     return fig
 
 
 def psychromograph(dataframe, freq='hourly', ax=None, col='AtmPress', fname=None):
     ylabel = '%s Barometric Pressure (in Hg)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq,
-                       how='mean', ax=ax, fname=fname)
+                   how='mean', ax=ax, fname=fname)
     return fig
 
 
 def temperaturePlot(dataframe, freq='hourly', ax=None, col='Temp', fname=None):
     ylabel = u'%s Temperature (\xB0C)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq,
-                       how='mean', ax=ax, fname=fname)
+                   how='mean', ax=ax, fname=fname)
     return fig
 
 
@@ -127,15 +127,15 @@ def rainClock(dataframe, raincol='Precip', fname=None):
         selector = (rainhours == hr)
         total_depth = rainfall[selector].sum()
         num_obervations = rainfall[selector].count()
-        rain_by_hour.append(total_depth/num_obervations)
+        rain_by_hour.append(total_depth / num_obervations)
 
-    bar_width = 2*np.pi/12 * 0.8
+    bar_width = 2 * np.pi / 12 * 0.8
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(7, 3),
                                    subplot_kw=dict(polar=True))
-    theta = np.arange(0.0, 2*np.pi, 2*np.pi/12)
-    ax1.bar(theta + 2*np.pi/12 * 0.1, rain_by_hour[:12],
+    theta = np.arange(0.0, 2 * np.pi, 2 * np.pi / 12)
+    ax1.bar(theta + 2 * np.pi / 12 * 0.1, rain_by_hour[:12],
             bar_width, color='DodgerBlue', linewidth=0.5)
-    ax2.bar(theta + 2*np.pi/12 * 0.1, rain_by_hour[12:],
+    ax2.bar(theta + 2 * np.pi / 12 * 0.1, rain_by_hour[12:],
             bar_width, color='Crimson', linewidth=0.5)
     ax1.set_title('AM Hours')
     ax2.set_title('PM Hours')
@@ -171,7 +171,7 @@ def _speed_labels(bins, units=None):
 
 def _dir_degrees_to_radins(directions):
     N = directions.shape[0]
-    barDir = directions * np.pi/180. - np.pi/N
+    barDir = (directions * np.pi / 180.) - (np.pi / N)
     barWidth = 2 * np.pi / N
     return barDir, barWidth
 
@@ -259,7 +259,7 @@ def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
         ax.bar(dir_rads, rose[c2].values,
                width=dir_width,
                bottom=rose.cumsum(axis=1)[c1].values,
-               color=palette[n+1],
+               color=palette[n + 1],
                edgecolor='none',
                label=c2,
                linewidth=0,
@@ -291,11 +291,11 @@ def windRose(dataframe, speedcol='WindSpd', dircol='WindDir',
 
 
 def _pct_fmt(x, pos=0):
-    return '%0.1f%%' % (100*x)
+    return '%0.1f%%' % (100 * x)
 
 
 def _convert_dir_to_left_radian(directions):
     N = directions.shape[0]
-    barDir = directions * np.pi/180. - np.pi/N
-    barWidth = [2 * np.pi / N]*N
+    barDir = (directions * np.pi / 180.) - (np.pi / N)
+    barWidth = [2 * np.pi / N] * N
     return barDir, barWidth

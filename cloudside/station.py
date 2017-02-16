@@ -9,6 +9,7 @@ from io import TextIOWrapper
 from pkg_resources import resource_string
 from urllib import request, error, parse
 from http import cookiejar
+import logging
 
 
 # math stuff
@@ -16,17 +17,19 @@ import numpy as np
 import matplotlib
 import matplotlib.dates as mdates
 import pandas
+import logging
 
 
 # metar stuff
-import metar
+from metar import Metar, Datatypes
 
 from . import validate
 
 try:
     from tqdm import tqdm
 except ImportError:
-    tqdm = lambda x : x
+    def tqdm(x):
+        return x
 
 
 __all__ = [
@@ -37,6 +40,121 @@ __all__ = [
     'getWunderground_NonAirportData',
     'WeatherStation',
 ]
+
+
+class MetarParser(Metar.Metar):
+    def __init__(self, metarcode, month=None, year=None, utcdelta=None,
+                 errorfile=None):
+        """Parse raw METAR code."""
+        self.code = metarcode              # original METAR code
+        self.type = 'METAR'                # METAR (routine) or SPECI (special)
+        self.mod = "AUTO"                  # AUTO (automatic) or COR (corrected)
+        self.station_id = None             # 4-character ICAO station code
+        self.time = None                   # observation time [datetime]
+        self.cycle = None                  # observation cycle (0-23) [int]
+        self.wind_dir = None               # wind direction [direction]
+        self.wind_speed = None             # wind speed [speed]
+        self.wind_gust = None              # wind gust speed [speed]
+        self.wind_dir_from = None          # beginning of range for win dir [direction]
+        self.wind_dir_to = None            # end of range for wind dir [direction]
+        self.vis = None                    # visibility [distance]
+        self.vis_dir = None                # visibility direction [direction]
+        self.max_vis = None                # visibility [distance]
+        self.max_vis_dir = None            # visibility direction [direction]
+        self.temp = None                   # temperature (C) [temperature]
+        self.dewpt = None                  # dew point (C) [temperature]
+        self.press = None                  # barometric pressure [pressure]
+        self.runway = []                   # runway visibility (list of tuples)
+        self.weather = []                  # present weather (list of tuples)
+        self.recent = []                   # recent weather (list of tuples)
+        self.sky = []                      # sky conditions (list of tuples)
+        self.windshear = []                # runways w/ wind shear (list of strings)
+        self.wind_speed_peak = None        # peak wind speed in last hour
+        self.wind_dir_peak = None          # direction of peak wind speed in last hour
+        self.peak_wind_time = None         # time of peak wind observation [datetime]
+        self.wind_shift_time = None        # time of wind shift [datetime]
+        self.max_temp_6hr = None           # max temp in last 6 hours
+        self.min_temp_6hr = None           # min temp in last 6 hours
+        self.max_temp_24hr = None          # max temp in last 24 hours
+        self.min_temp_24hr = None          # min temp in last 24 hours
+        self.press_sea_level = None        # sea-level pressure
+        self.precip_1hr = None             # precipitation over the last hour
+        self.precip_3hr = None             # precipitation over the last 3 hours
+        self.precip_6hr = None             # precipitation over the last 6 hours
+        self.precip_24hr = None            # precipitation over the last 24 hours
+        self._trend = False                # trend groups present (bool)
+        self._trend_groups = []            # trend forecast groups
+        self._remarks = []                 # remarks (list of strings)
+        self._unparsed_groups = []
+        self._unparsed_remarks = []
+
+        self._now = datetime.datetime.utcnow()
+        if utcdelta:
+            self._utcdelta = utcdelta
+        else:
+            self._utcdelta = datetime.datetime.now() - self._now
+
+        logging.basicConfig(filename=errorfile, filemode='a', level=logging.INFO)
+
+        self._month = month
+        self._year = year
+
+        code = self.code + " "
+        try:
+            ngroup = len(self.handlers)
+            igroup = 0
+            ifailed = -1
+            while igroup < ngroup and code:
+                pattern, handler, repeatable = self.handlers[igroup]
+                logging.debug(handler.__name__, ":", code)
+                m = pattern.match(code)
+                while m:
+                    ifailed = -1
+                    logging.debug(Metar._report_match(handler, m.group()))
+                    handler(self, m.groupdict())
+                    code = code[m.end():]
+                    if self._trend:
+                        code = self._do_trend_handlers(code)
+                    if not repeatable:
+                        break
+
+                    logging.debug(handler.__name__, ":", code)
+                    m = pattern.match(code)
+
+                if not m and ifailed < 0:
+                    ifailed = igroup
+
+                igroup += 1
+                if igroup == ngroup and not m:
+                    pattern, handler = (UNPARSED_RE, _unparsedGroup)
+                    logging.debug(handler.__name__, ":", code)
+                    m = pattern.match(code)
+                    logging.debug(Metar._report_match(handler, m.group()))
+                    handler(self, m.groupdict())
+                    code = code[m.end():]
+                    igroup = ifailed
+
+                    # if it's still -2 when we run out of main-body
+                    #  groups, we'll try parsing this group as a remark
+                    ifailed = -2
+
+            if pattern == REMARK_RE or self.press:
+                while code:
+                    for pattern, handler in Metar.remark_handlers:
+                        logging.debug(handler.__name__, ":", code)
+                        m = pattern.match(code)
+                        if m:
+                            logging.debug(Metar._report_match(handler, m.group()))
+                            handler(self, m.groupdict())
+                            code = pattern.sub("", code, 1)
+                            break
+
+        except Exception as err:
+            logging.error("failed while processing '" + code + "'\n" + " ".join(err.args))
+
+        if self._unparsed_groups:
+            code = ' '.join(self._unparsed_groups)
+            logging.error("Unparsed groups in body: " + code)
 
 
 class WeatherStation(object):
@@ -60,12 +178,12 @@ class WeatherStation(object):
 
     def __init__(self, sta_id, city=None, state=None, country=None,
                  lat=None, lon=None, max_attempts=10, show_progress=False,
-                 datadir=None):
+                 datadir=None, errorfile=None):
         self.sta_id = sta_id
         self.city = city
         self.state = state
         self.country = country
-        self.position = metar.datatypes.position(lat, lon)
+        self.position = Datatypes.position(lat, lon)
         self._max_attempts = max_attempts
         self.lat = lat
         self.lon = lon
@@ -75,14 +193,16 @@ class WeatherStation(object):
         else:
             self.tracker = lambda x: x
 
-
         if self.state:
             self.name = "%s, %s" % (self.city, self.state)
         else:
             self.name = self.city
 
         self.datadir = datadir or os.path.join('data')
-        self.errorfile = os.path.join(self.datadir, '%s_errors.log'.format(sta_id))
+        if errorfile is not None:
+            self.errorfile = os.path.join(self.datadir, errorfile)
+        else:
+            self.errorfile = None
 
         self._wunderground = None
         self._wunder_nonairport = None
@@ -91,6 +211,7 @@ class WeatherStation(object):
     @property
     def max_attempts(self):
         return self._max_attempts
+
     @max_attempts.setter
     def max_attempts(self, value):
         self._max_attempts = value
@@ -134,7 +255,7 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *step* : 'raw' or 'flat'
         '''
-        date = timestamp.to_datetime()
+        date = timestamp.to_pydatetime()
         validate.source(src)
         validate.step(step)
 
@@ -192,7 +313,7 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *timestamp* : pands timestamp object
         '''
-        date = timestamp.to_datetime()
+        date = timestamp.to_pydatetime()
         "http://www.wunderground.com/history/airport/KDCA/1950/12/18/DailyHistory.html?format=1"
         validate.source(src)
         if src.lower() == 'wunderground':
@@ -244,9 +365,9 @@ class WeatherStation(object):
 
         outname = self._make_data_file(timestamp, src, 'raw')
         status = 'not there'
-        errorfile = open(self.errorfile, 'a')
+
+        logging.basicConfig(filename=self.errorfile, filemode='a', level=logging.INFO)
         if not os.path.exists(outname) or force_download:
-            outfile = open(outname, 'w')
             url = self._url_by_date(timestamp, src=src)
             if src.lower() == 'wunderground':
                 start = 2
@@ -258,30 +379,26 @@ class WeatherStation(object):
                 start = 0
                 source = self.asos
 
-            try:
-                webdata = source.open(url)
-                for n, line in enumerate(codecs.iterdecode(webdata, 'utf-8')):
-                    if n >= start:
-                        if src != 'wunder_nonairport':
-                            outfile.write(line)
-                        else:
-                            if line != '<br>\n':
-                                outfile.write(line.strip() + '\n')
+            successful = False
+            with open(outname, 'w') as outfile:
+                try:
+                    webdata = source.open(url)
+                    for n, line in enumerate(codecs.iterdecode(webdata, 'utf-8')):
+                        if n >= start:
+                            if src != 'wunder_nonairport':
+                                outfile.write(line)
+                            else:
+                                if line != '<br>\n':
+                                    outfile.write(line.strip() + '\n')
+                    successful = True
 
-            except Exception as e:
-                #print(e)
-                #print('error on: {0} (attempt {1})'.format(url, attempt))
-                outfile.close()
+                except Exception as e:
+                    logging.error('error parsing: %s\n' % (url,))
+
+            if not successful:
                 os.remove(outname)
-                errorfile.write('error on: %s\n' % (url,))
 
-            outfile.close()
-            status = validate.file_status(outname)
-        else:
-            status = validate.file_status(outname)
-
-        errorfile.close()
-        return status
+        return validate.file_status(outname)
 
     def _attempt_download(self, timestamp, src, attempt=0):
         '''
@@ -309,7 +426,6 @@ class WeatherStation(object):
         input:
             *timestamp* : a pandas timestamp object
         '''
-        #pdb.set_trace()
         validate.source(src)
         rawfilename = self._make_data_file(timestamp, src, 'raw')
         flatfilename = self._make_data_file(timestamp, src, 'flat')
@@ -337,7 +453,6 @@ class WeatherStation(object):
                 press = []
                 cover = []
 
-                errorfile = open(self.errorfile, 'a')
                 for line in datain:
                     if src.lower() == 'asos':
                         metarstring = line
@@ -352,7 +467,7 @@ class WeatherStation(object):
                             metarstring = None
 
                     if metarstring is not None:
-                        obs = metar.Metar(metarstring, errorfile=errorfile)
+                        obs = MetarParser(metarstring, errorfile=self.errorfile)
                         rains = _append_val(obs.precip_1hr, rains, fillNone=0.0)
                         temps = _append_val(obs.temp, temps)
                         dewpt = _append_val(obs.dewpt, dewpt)
@@ -361,7 +476,6 @@ class WeatherStation(object):
                         press = _append_val(obs.press, press)
                         cover.append(_process_sky_cover(obs))
 
-                errorfile.close()
                 rains = np.array(rains)
                 dates = np.array(dates)
 
@@ -370,7 +484,7 @@ class WeatherStation(object):
                 else:
                     final_precip = rains
 
-                for row in zip([self.sta_id]*rains.shape[0], dates, final_precip,
+                for row in zip([self.sta_id] * rains.shape[0], dates, final_precip,
                                temps, dewpt, windspd, winddir, press, cover):
                     dataout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % row)
 
@@ -382,7 +496,6 @@ class WeatherStation(object):
                     'SolarRadiationWatts/m^2,SoftwareType,DateUTC\n'
                 )
 
-                #dataout.write(headers)
                 dataout.write(datain.read())
 
             datain.close()
@@ -451,10 +564,6 @@ class WeatherStation(object):
                                               freq=freq[source])
         except KeyError:
             raise ValueError('source must be either "ASOS" or "wunderground"')
-
-        labelfxn = lambda ts, status: '{} {}: {}'.format(
-            self.sta_id, ts.strftime('%Y.%m.%d'), status
-        )
 
         data = None
         for n, ts in self.tracker(enumerate(timestamps)):
@@ -556,7 +665,7 @@ class WeatherStation(object):
             start = cdata[1].split(',')[0]
             end = cdata[-1].split(',')[0]
             cfile.close()
-            print(('%d) %s - start: %s\tend: %s' % (n+1, cf, start, end)))
+            print(('%d) %s - start: %s\tend: %s' % (n + 1, cf, start, end)))
 
     def loadCompiledFile(self, source, filename=None, filenum=None):
         if filename is None and filenum is None:
@@ -567,7 +676,7 @@ class WeatherStation(object):
         if N > 0:
             if filenum is not None:
                 if 0 < filenum <= N:
-                    filename = compfiles[filenum-1]
+                    filename = compfiles[filenum - 1]
                 else:
                     raise ValueError('file number must be between 1 and %d' % N)
             elif filename not in compfiles:
@@ -627,12 +736,12 @@ def _determine_reset_time(date, precip):
         raise ValueError("date and precip must be same length")
     else:
         for n in range(1, len(date)):
-            if precip[n] < precip[n-1]:
-                minuteIndex = int(date[n].minute/5)
+            if precip[n] < precip[n - 1]:
+                minuteIndex = int(date[n].minute / 5)
                 minutes[minuteIndex] += 1
 
         resetTime, = np.where(minutes == minutes.max())
-        return resetTime[0]*5
+        return resetTime[0] * 5
 
 
 def _process_precip(dateval, p1):
@@ -640,19 +749,18 @@ def _process_precip(dateval, p1):
     p = precip data (list)
     dt = list of datetime objects
     RT = point in the hour when the tip counter resets
-    #if (p1[n-1] <= p1[n]) and (dt[n].minute != RT):'''
+    #if (p1[n - 1] <= p1[n]) and (dt[n].minute != RT):'''
     RT = _determine_reset_time(dateval, p1)
     p2 = np.zeros(len(p1))
     p2[0] = p1[0]
     for n in range(1, len(p1)):
 
-        tdelta = dateval[n] - dateval[n-1]
-        if p1[n] < p1[n-1] or dateval[n].minute == RT or tdelta.seconds/60 != 5:
+        tdelta_minutes = (dateval[n] - dateval[n - 1]).seconds / 60
+        if p1[n] < p1[n - 1] or dateval[n].minute == RT or tdelta_minutes != 5:
             p2[n] = p1[n]
 
-        #elif tdelta.seconds/60 == 5 and dateval[n].minute != RT:
         else:
-            p2[n] = (float(p1[n]) - float(p1[n-1]))
+            p2[n] = (float(p1[n]) - float(p1[n - 1]))
 
     return p2
 
@@ -685,7 +793,7 @@ def _process_sky_cover(obs):
 def getAllStations():
     stations = {}
 
-    lines = resource_string('metar.data', 'nsd_cccc.txt').decode('UTF-8').splitlines()
+    lines = resource_string('cloudside.tests.data', 'nsd_cccc.txt').decode('UTF-8').splitlines()
 
     for line in lines:
         f = line.strip().split(";")
@@ -724,5 +832,3 @@ def getWundergroundData(station, startdate, enddate, filename=None):
 
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
     return _fetch_data('getWunderground_NonAirportData', station, startdate, enddate, filename)
-
-

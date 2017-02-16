@@ -8,6 +8,9 @@ matrix:
         - COVERAGE=false
     - python: 3.5
       env:
+        - COVERAGE=false
+    - python: 3.6
+      env:
         - COVERAGE=true
 
 before_install:
@@ -20,13 +23,13 @@ before_install:
 install:
   - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas pytest coverage requests
   - source activate testenv
-  - conda install --channel=phobson --yes metar
-  - conda install --channel=conda-forge --yes pytest-mpl pytest-cov
+  - conda install --channel=conda-forge --yes pytest-mpl pytest-cov pytest-pep8
+  - pip install git+https://github.com/tomp/python-metar.git
   - pip install coveralls
   - pip install .
 
 script:
-  - python check_cloudside.py --mpl --verbose
+  - python check_cloudside.py --mpl --verbose --pep8
 
 after_success:
   - if [ ${COVERAGE} = true ]; then

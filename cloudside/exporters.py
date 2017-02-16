@@ -131,7 +131,7 @@ def NCDCFormat(dataframe, coopid, statename, col='Precip', filename=None):
             flags = [" "] * len(newrow)
 
         precipstrings = ' '.join([
-            '{0:02d}00 {1:05d}{2}'.format(hour, int(val), flag) \
+            '{0:02d}00 {1:05d}{2}'.format(hour, int(val), flag)
             for hour, val, flag in zip(newrow.index, newrow, flags)
         ])
 
@@ -160,16 +160,19 @@ def hourXtab(dataframe, col, filename=None, flag=None):
     data, rule, plotkind = _resampler(dataframe, col, freq='hourly', how='sum')
     data.index.names = ['Datetime']
     data.name = col
-    data = pandas.DataFrame(data)
-    #data = pandas.DataFrame(data[data.Precip > 0])
-    data['Year'] = data.index.year
-    data['Month'] = data.index.month
-    data['Day'] = data.index.day
-    data['Hour'] = data.index.hour
-    data['Hour'] += 1
-    data = data.reset_index().set_index(['Year', 'Month', 'Day', 'Hour'])[[col]]
-    data = data.unstack(level='Hour')[col]
-    data[25] = data.sum(axis=1)
+    data = (
+        pandas.DataFrame(data)
+            .assign(Year=lambda df: df.index.year)
+            .assign(Month=lambda df: df.index.month)
+            .assign(Day=lambda df: df.index.day)
+            .assign(Hour=lambda df: df.index.hour + 1)
+            .reset_index()
+            .set_index(['Year', 'Month', 'Day', 'Hour'])[[col]]
+            .unstack(level='Hour')[col]
+            .assign(total=lambda df: df.sum(axis=1))
+            .rename(colums={'total': 25})
+    )
+
     if filename is not None:
         data.to_csv(filename)
     return data
@@ -233,6 +236,7 @@ def _write_obs(rowheader, year, month, day, obs):
         ])
         return rowstring + '\n'
 
+
 def _obs_from_row(row):
     values = row.strip().split()
     header = list(values.pop(0))
@@ -257,6 +261,3 @@ def _obs_from_row(row):
     rows = [_write_obs(rowheader, year, month, day, obs) for obs in parsedObs]
 
     return [r for r in filter(lambda r: r is not None, rows)]
-
-
-

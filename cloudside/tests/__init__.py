@@ -4,6 +4,7 @@ import pytest
 
 import cloudside
 
+
 def test(*args):
     options = [resource_filename('cloudside', '')]
     options.extend(list(args))

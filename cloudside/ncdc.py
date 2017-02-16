@@ -20,16 +20,17 @@ import pandas
 def getPctAvail(grid, coopid):
     status = grid.unstack()
     groups = status.groupby(level='Yr')
-    pct_avail = groups.apply(lambda x:
-        x.value_counts().to_dict().get(0, 0) / float(x.count()) * 100
+    pct_avail = groups.apply(
+        lambda x:
+            x.value_counts().to_dict().get(0, 0) / float(x.count()) * 100
     )
     pct_avail.name = coopid
     return pandas.DataFrame(pct_avail)
 
 
 def xdates(x, pos):
-    day = x/24.
-    date = mdates.num2date(1+x/24.)
+    day = x / 24.
+    date = mdates.num2date(1 + day)
     date2 = datetime.datetime(1900, date.month, date.day)
     return date2.strftime('%m-%d')
 
@@ -143,11 +144,12 @@ def summarizeStorms(stormdata, stormcol='storm', units='in',
     # aggregate the total precip, min (start) date, and then join it
     # to an aggrecation of the max precip and max (end) date and then
     # rename the columns
-    summary = groups.agg({'precip': 'sum', datename: 'min'}) \
-                    .join(
-                        groups.agg({datename: 'max', 'precip': 'max'}),
-                        rsuffix='_max'
-                    ).rename(columns=column_names)
+    aggfxns = {datename: 'max', 'precip': 'max'}
+    summary = (
+        groups.agg({'precip': 'sum', datename: 'min'})
+            .join(groups.agg(aggfxns), rsuffix='_max')
+            .rename(columns=column_names)
+    )
 
     if summary.shape[0] > 1:
         secperhr = 60. * 60.
@@ -212,21 +214,20 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
         (0.32927729263408284, 0.47628455565843819, 0.18371555497583281),
         (0.086056336005814082, 0.23824692404211989, 0.30561236308077167)
     ]
-    #mycolors = seaborn.color_palette(name='cubehelix_r', n_colors=4)
     cmap = mpl.colors.ListedColormap(mycolors)
     cmap.set_bad(mycolors[-1])
     bounds = [-0.5, 0.5, 1.5, 2.5, 3.5]
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
     img = ax.pcolorfast(grid, cmap=cmap, norm=norm)
-    ax.set_aspect(grid.shape[1]/grid.shape[0])
+    ax.set_aspect(grid.shape[1] / grid.shape[0])
 
-    ax.set_yticks(np.arange(grid.shape[0])+0.5)
+    ax.set_yticks(np.arange(grid.shape[0]) + 0.5)
     ax.set_yticklabels(grid.index.tolist(), fontsize=7)
 
     months = pandas.DatetimeIndex(freq=pandas.offsets.MonthBegin(n=1),
                                   start='1900-01-01', end='1900-12-31')
-    ax.set_xticks([month.dayofyear*24 - 24 for month in months.tolist()])
+    ax.set_xticks([(month.dayofyear * 24) - 24 for month in months.tolist()])
 
     ax.invert_yaxis()
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(xdates))
@@ -261,7 +262,6 @@ def dataAvailabilityHeatmap(data):
         (0.074817382149836603, 0.37325644738533914, 0.65520955534542313),
         (0.031372550874948502, 0.28161477242030347, 0.55826222487524446)
     ]
-    #mycolors = seaborn.color_palette(name=cmapname, n_colors=bounds.shape[0])
     cmap = mpl.colors.ListedColormap(mycolors)
     cmap.set_under('1.0')
     cmap.set_bad('1.0')
@@ -304,9 +304,12 @@ def dataAvailabilityHeatmap(data):
 
 
 if __name__ == '__main__':
-    date_parser = lambda x: datetime.datetime.strptime(x, '%Y%m%d %H:%M')
+
+    def _parser(x):
+        return datetime.datetime.strptime(x, '%Y%m%d %H:%M')
+
     data_1hr = pandas.read_csv(filepath, sep=sep, na_values=['unknown', 99999],
-                               parse_dates=['DATE'], date_parser=date_parser)
+                               parse_dates=['DATE'], date_parser=_parser)
 
     COOPIDS = pandas.unique(data_1hr['STATION'])
     COOPIDS.sort()
@@ -325,7 +328,6 @@ if __name__ == '__main__':
         })
 
     for n, sta in enumerate(station_info):
-        #station_data, station_name = rainfall.setupStationData(data_1hr, coopid)
         fig, grid = availabilityByStation(sta['data'], sta['name'], sta['coop'])
 
         if n == 0:
