@@ -233,7 +233,7 @@ class Test_WeatherStation():
 
     def test_process_sky_cover(self):
         teststring = 'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 RMK AO2 SLP262 T00390028 53010 $'
-        obs = station._Metar(teststring)
+        obs = station.MetarParser(teststring)
         testval = station._process_sky_cover(obs)
         assert testval == 1.0000
 

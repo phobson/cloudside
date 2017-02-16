@@ -42,7 +42,7 @@ __all__ = [
 ]
 
 
-class _Metar(Metar.Metar):
+class MetarParser(Metar.Metar):
     def __init__(self, metarcode, month=None, year=None, utcdelta=None,
                  errorfile=None):
         """Parse raw METAR code."""
@@ -467,7 +467,7 @@ class WeatherStation(object):
                             metarstring = None
 
                     if metarstring is not None:
-                        obs = _Metar(metarstring, errorfile=self.errorfile)
+                        obs = MetarParser(metarstring, errorfile=self.errorfile)
                         rains = _append_val(obs.precip_1hr, rains, fillNone=0.0)
                         temps = _append_val(obs.temp, temps)
                         dewpt = _append_val(obs.dewpt, dewpt)
