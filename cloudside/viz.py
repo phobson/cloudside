@@ -48,7 +48,7 @@ def _resampler(dataframe, col, freq, how='sum', fillna=None):
 
     rule = rules[freq.lower()][0]
     plotkind = rules[freq.lower()][1]
-    data = dataframe[col].resample(how=how, rule=rule)
+    data = dataframe[col].resample(rule=rule).apply(how)
     if fillna is not None:
         data.fillna(value=fillna, inplace=True)
 

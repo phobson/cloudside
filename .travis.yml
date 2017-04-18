@@ -6,30 +6,36 @@ matrix:
     - python: 3.4
       env:
         - COVERAGE=false
+        - ARGS="--verbose --pep8"
     - python: 3.5
       env:
         - COVERAGE=false
+        - ARGS="--mpl --verbose --pep8"
     - python: 3.6
       env:
         - COVERAGE=true
+        - ARGS="--mpl --verbose --pep8 --runslow"
 
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
-  - conda update conda --yes
+  - conda config --set always_yes true
+  - conda config --add channels conda-forge
+  - conda update conda
+  - conda install nomkl
 
 install:
-  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas pytest coverage requests
+  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas requests
   - source activate testenv
-  - conda install --channel=conda-forge --yes pytest-mpl pytest-cov pytest-pep8
+  - conda install --channel=conda-forge --yes pytest coverage pytest-mpl pytest-cov pytest-pep8
   - pip install git+https://github.com/tomp/python-metar.git
   - pip install coveralls
   - pip install .
 
 script:
-  - python check_cloudside.py --mpl --verbose --pep8
+  - python check_cloudside.py ${ARGS}
 
 after_success:
   - if [ ${COVERAGE} = true ]; then

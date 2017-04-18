@@ -9,7 +9,7 @@ source:
    # - fix.patch
 
 build:
-  number: 2
+  number: 3
   script: python setup.py install
 
 

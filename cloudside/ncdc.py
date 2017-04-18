@@ -5,7 +5,7 @@ import sys
 import os
 
 # third-party modules
-import numpy as np
+import numpy
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,7 +17,19 @@ import matplotlib.colorbar as colorbar
 import pandas
 
 
-def getPctAvail(grid, coopid):
+def remove_bad_rain_values(df, raincol='hpcp', threshold=500):
+    """ Filters invalid rainfall values and returns a new series.
+
+    NCDC use 99999 1/100th of inch for invalid/missing values.
+    We downloaded the data in mm so NCDC coverted that value to
+    25399 mm. However, we default the invalid threshold value to
+    500 mm since 12 inches of rain in an hour is equally
+    unreasonable.
+    """
+    return numpy.where(df[raincol] > threshold, numpy.nan, df[raincol])
+
+
+def get_percent_available(grid, coopid):
     status = grid.unstack()
     groups = status.groupby(level='Yr')
     pct_avail = groups.apply(
@@ -28,6 +40,7 @@ def getPctAvail(grid, coopid):
     return pandas.DataFrame(pct_avail)
 
 
+@mticker.FuncFormatter
 def xdates(x, pos):
     day = x / 24.
     date = mdates.num2date(1 + day)
@@ -35,20 +48,28 @@ def xdates(x, pos):
     return date2.strftime('%m-%d')
 
 
-def setDataStatus(dataframe, opener, closer, flagval, flagcol='flag',
-                  raincol='precip', statuscol='status'):
-    df = dataframe.copy()
-    df['open'] = (df[flagcol] == opener).cumsum()
-    df['close'] = (df[flagcol] == closer).cumsum() + 1
-    selector = (df.close == df.open) | (df[flagcol] == closer)
-    df.loc[selector, statuscol] = flagval
+def set_status(dataframe, opener, closer, flagval, flagcol='flag',
+               raincol='precip', statuscol='status'):
+    if statuscol not in dataframe.columns:
+        dataframe = dataframe.assign(**{statuscol: 0})
+
+    df = (
+        dataframe
+            .assign(_open=lambda df: (df[flagcol] == opener).cumsum())
+            .assign(_close=lambda df: (df[flagcol] == closer).cumsum() + 1)
+            .assign(**{statuscol: lambda df: numpy.where(
+                (df['_close'] == df['_open']) | (df[flagcol] == closer),
+                flagval, df[statuscol]
+            )})
+            .drop(['_open', '_close'], axis='columns')
+    )
     return df
 
 
-def setupStationData(dataframe, coopid, dumpcsv=False, datecol='DATE',
-                     stationcol='STATION', stanamecol='STATION_NAME',
-                     precipcol='HPCP', qualcol='Measurement Flag',
-                     baseyear=1947):
+def setup_station_data(dataframe, coopid, dumpcsv=False, datecol='DATE',
+                       stationcol='STATION', stanamecol='STATION_NAME',
+                       precipcol='HPCP', qualcol='Measurement Flag',
+                       baseyear=1947):
     # get the name of the station
     stationname = dataframe[stanamecol][dataframe[stationcol] == coopid].iloc[0]
 
@@ -93,13 +114,13 @@ def setupStationData(dataframe, coopid, dumpcsv=False, datecol='DATE',
 
     # sometime the initial 'a' flags are missing. this inserts them:
     missing_flag_locs = (station_data.flag == ' ') & \
-                        (station_data.precip == 99999)
+                        (station_data.precip > 10000)
     station_data.loc[missing_flag_locs, 'flag'] = 'a'
 
     # set the status for accumulated (aA), deleted ({}), and missing ([])
-    station_data = setDataStatus(station_data, 'a', 'A', 1)
-    station_data = setDataStatus(station_data, '{', '}', 2)
-    station_data = setDataStatus(station_data, '[', ']', 3)
+    station_data = set_status(station_data, 'a', 'A', 1)
+    station_data = set_status(station_data, '{', '}', 2)
+    station_data = set_status(station_data, '[', ']', 3)
 
     return station_data, stationname
 
@@ -123,7 +144,7 @@ def summarizeStorms(stormdata, stormcol='storm', units='in',
         else:
             conversion = secperhr
         if pandas.isnull(row[t2]) or pandas.isnull(row[t1]):
-            return np.nan
+            return numpy.nan
         else:
             return (row[t2] - row[t1]).total_seconds() / conversion
 
@@ -147,8 +168,8 @@ def summarizeStorms(stormdata, stormcol='storm', units='in',
     aggfxns = {datename: 'max', 'precip': 'max'}
     summary = (
         groups.agg({'precip': 'sum', datename: 'min'})
-            .join(groups.agg(aggfxns), rsuffix='_max')
-            .rename(columns=column_names)
+              .join(groups.agg(aggfxns), rsuffix='_max')
+              .rename(columns=column_names)
     )
 
     if summary.shape[0] > 1:
@@ -183,7 +204,8 @@ def summarizeStorms(stormdata, stormcol='storm', units='in',
         return summary[final_columns]
 
 
-def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
+def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
+                          figsize=None):
 
     cooptxt = coopid.replace(':', '')
 
@@ -203,8 +225,11 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
     grid = stationdata.unstack(level='MoDayHr')['status']
 
     # plotting
-    fig = plt.figure(figsize=(6.5, 7.25))
-    gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[20, 1], )
+    if not figsize:
+        figsize = (6.5, 7.25)
+
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[20, 1])
     ax = fig.add_subplot(gs[0])
     cax = fig.add_subplot(gs[1])
 
@@ -222,7 +247,7 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
     img = ax.pcolorfast(grid, cmap=cmap, norm=norm)
     ax.set_aspect(grid.shape[1] / grid.shape[0])
 
-    ax.set_yticks(np.arange(grid.shape[0]) + 0.5)
+    ax.set_yticks(numpy.arange(grid.shape[0]) + 0.5)
     ax.set_yticklabels(grid.index.tolist(), fontsize=7)
 
     months = pandas.DatetimeIndex(freq=pandas.offsets.MonthBegin(n=1),
@@ -230,7 +255,7 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
     ax.set_xticks([(month.dayofyear * 24) - 24 for month in months.tolist()])
 
     ax.invert_yaxis()
-    ax.xaxis.set_major_formatter(mticker.FuncFormatter(xdates))
+    ax.xaxis.set_major_formatter(xdates)
 
     cbar = colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='horizontal')
     cbar.set_ticks([0, 1, 2, 3])
@@ -247,9 +272,11 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947):
     return fig, grid
 
 
-def dataAvailabilityHeatmap(data):
+def dataAvailabilityHeatmap(data, figsize=None):
+    if not figsize:
+        figsize = (6.8, 7.0)
 
-    bounds = np.arange(10., 101.0, 10.0)
+    bounds = numpy.arange(10., 101.0, 10.0)
     mycolors = [
         (0.89788543476777916, 0.93903883485233086, 0.97736255421357998),
         (0.8288812097381143, 0.89376394327949071, 0.95472510842715996),
@@ -267,10 +294,10 @@ def dataAvailabilityHeatmap(data):
     cmap.set_bad('1.0')
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N, clip=True)
 
-    fig = plt.figure(figsize=(6.8, 7))
+    fig = plt.figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[1, 20])
 
-    mdata = np.ma.masked_less(data.values, 1)
+    mdata = numpy.ma.masked_less(data.values, 1)
 
     ax = fig.add_subplot(gs[1])
     img = ax.pcolorfast(mdata, cmap=cmap)
@@ -280,11 +307,11 @@ def dataAvailabilityHeatmap(data):
     ax.yaxis.tick_left()
 
     yearstep = 4
-    ax.set_yticks(np.arange(data.shape[0]) + 0.5)
-    ax.set_yticks(np.arange(data.shape[0]), minor=True)
+    ax.set_yticks(numpy.arange(data.shape[0]) + 0.5)
+    ax.set_yticks(numpy.arange(data.shape[0]), minor=True)
     ax.set_yticklabels(data.index.tolist())
-    ax.set_xticks(np.arange(0, data.shape[1], yearstep) + 0.5)
-    ax.set_xticks(np.arange(0, data.shape[1], 1), minor=True)
+    ax.set_xticks(numpy.arange(0, data.shape[1], yearstep) + 0.5)
+    ax.set_xticks(numpy.arange(0, data.shape[1], 1), minor=True)
     ax.set_xticklabels(data.columns[::yearstep], rotation=45)
     ax.tick_params(axis='both', which='minor', length=0)
     ax.xaxis.grid(True, zorder=10, lw=0.5, which='minor', linestyle='-', color='0.5', alpha=0.5)
@@ -297,8 +324,6 @@ def dataAvailabilityHeatmap(data):
     cax.xaxis.set_label_position('top')
     cax.set_xlabel('Percent of data available', fontsize=10)
     fig.tight_layout()
-
-    fig.savefig('images/DataAvailability.png', dpi=600)
 
     return fig
 
@@ -318,7 +343,7 @@ if __name__ == '__main__':
 
     for n, coopid in enumerate(COOPIDS):
         cooptxt = coopid.replace(':', '')
-        station_data, station_name = setupStationData(data_1hr, coopid)
+        station_data, station_name = setup_station_data(data_1hr, coopid)
         summary = summarizeStorms(station_data, coopid)
         station_info.append({
             'name': station_name,
@@ -331,9 +356,9 @@ if __name__ == '__main__':
         fig, grid = availabilityByStation(sta['data'], sta['name'], sta['coop'])
 
         if n == 0:
-            pct_avail = getPctAvail(grid, sta['coop'])
+            pct_avail = get_percent_available(grid, sta['coop'])
         else:
-            pct_avail = pct_avail.join(getPctAvail(grid, sta['coop']), how='outer')
+            pct_avail = pct_avail.join(get_percent_available(grid, sta['coop']), how='outer')
 
         pct_avail.to_csv('GaugeAvailabily.csv', na_rep=0, float_format='%0.1f')
 

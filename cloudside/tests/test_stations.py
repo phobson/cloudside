@@ -1,16 +1,18 @@
 import shutil
+import tempfile
 from datetime import datetime
 import os
-
-import pytest
-from unittest import mock
+from pkg_resources import resource_filename
 
 import numpy
 import pandas
 from urllib import request
 import matplotlib.dates as mdates
 
+from unittest import mock
 import pytest
+import numpy.testing as nptest
+import pandas.util.testing as pdtest
 
 from cloudside import station
 
@@ -20,7 +22,17 @@ class FakeClass(object):
         return 'item2'
 
 
-def makeFakeRainData():
+def get_test_file(filename):
+    return resource_filename('clouside.tests.data', filename)
+
+
+@pytest.fixture
+def ts():
+    return pandas.DatetimeIndex(start='2012-01-01', end='2012-02-28', freq='D')
+
+
+@pytest.fixture
+def fake_rain_data():
     tdelta = datetime(2001, 1, 1, 1, 5) - datetime(2001, 1, 1, 1, 0)
     start = datetime(2001, 1, 1, 12, 0)
     end = datetime(2001, 1, 1, 16, 0)
@@ -37,217 +49,83 @@ def makeFakeRainData():
     return daterange, rain_raw
 
 
-class Test_WeatherStation():
-    def setup(self):
-        self.max_attempts = 3
-        self.sta = station.WeatherStation('KPDX', city='Portland', state='OR',
-                                          country='Cascadia', lat=999, lon=999,
-                                          max_attempts=self.max_attempts)
-        self.sta2 = station.WeatherStation('MWPKO3', max_attempts=self.max_attempts)
-        self.start = datetime(2012, 1, 1)
-        self.end = datetime(2012, 2, 28)
-        self.ts = pandas.DatetimeIndex(start=self.start, freq='D', periods=1)[0]
+@pytest.fixture(params=['KPDX'])
+def sta(request):
+    with tempfile.TemporaryDirectory() as datadir:
 
-        self.dates, self.fakeprecip = makeFakeRainData()
+        errorfile = os.path.join(datadir, 'test{}.log'.format(request.param))
+        yield station.WeatherStation(request.param, city='Portland', state='OR',
+                                     country='Cascadia', lat=999, lon=999,
+                                     max_attempts=3, errorfile=errorfile,
+                                     datadir=os.path.join(datadir, 'testtree'))
 
-    def teardown(self):
-        datapath = os.path.join(os.getcwd(), 'data')
-        if os.path.exists(datapath):
-            shutil.rmtree(datapath)
 
-    def test_attributes(self):
-        attributes = ['sta_id', 'city', 'state', 'country', 'position',
-                      'name', 'wunderground', 'asos', 'errorfile']
-        for attr in attributes:
-            assert hasattr(self.sta, attr)
+@pytest.fixture()
+def known_statuses():
+    return ['ok', 'bad', 'not there']
 
-    def test_find_dir(self):
-        testdir = self.sta._find_dir('asos', 'raw')
 
-        if os.path.sep == '/':
-            knowndir = 'data/%s/asos/raw' % self.sta.sta_id
-        else:
-            knowndir = 'data\\%s\\asos\\raw' % self.sta.sta_id
+@pytest.fixture
+def start():
+    return datetime(2012, 1, 1)
 
-        assert testdir == knowndir
 
-    def test_find_file(self):
-        testfile1 = self.sta._find_file(self.ts, 'asos', 'raw')
-        testfile2 = self.sta._find_file(self.ts, 'wunderground', 'flat')
+@pytest.fixture
+def end():
+    return datetime(2012, 2, 28)
 
-        knownfile1 = '%s_201201.dat' % self.sta.sta_id
-        knownfile2 = '%s_20120101.csv' % self.sta.sta_id
 
-        assert testfile1 == knownfile1
-        assert testfile2 == knownfile2
+@pytest.mark.parametrize(('datestring', 'expected'), [
+    ('2012-6-4', datetime(2012, 6, 4)),
+    ('September 23, 1982', datetime(1982, 9, 23)),
+])
+def test_parse_dates(datestring, expected):
+    result = station._parse_date(datestring)
+    assert result == expected
 
-    def test_set_cookies(self):
-        assert isinstance(self.sta.asos, request.OpenerDirector)
-        assert isinstance(self.sta.wunderground, request.OpenerDirector)
 
-    def test_url_by_date(self):
-        testurl1 = self.sta._url_by_date(self.ts, src='wunderground')
-        testurl2 = self.sta._url_by_date(self.ts, src='asos')
-        knownurl1 = "http://www.wunderground.com/history/airport/%s" \
-                    "/2012/01/01/DailyHistory.html?&&theprefset=SHOWMETAR" \
-                    "&theprefvalue=1&format=1" % self.sta.sta_id
-        knownurl2 = "ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin" \
-                    "/6401-2012/64010%s201201.dat" % self.sta.sta_id
+def test_date_asos():
+    metarstring = '24229KPDX PDX20010101000010001/01/01 00:00:31 5-MIN KPDX'
+    expected = datetime(2001, 1, 1, 0, 0)
+    assert station._date_ASOS(metarstring) == expected
 
-        assert testurl1 == knownurl1
-        assert testurl2 == knownurl2
 
-    def test_make_data_file(self):
-        testfile1 = self.sta._make_data_file(self.ts, 'wunderground', 'flat')
-        testfile2 = self.sta._make_data_file(self.ts, 'asos', 'raw')
+def test_append_val():
+    x = FakeClass()
+    expected = ['item1', 'item2', 'NA']
+    testlist = ['item1']
+    testlist = station._append_val(x, testlist)
+    testlist = station._append_val(None, testlist)
+    assert testlist == expected
 
-        knownfile1 = os.path.join('data', self.sta.sta_id, 'wunderground',
-                                  'flat', '{}_20120101.csv'.format(self.sta.sta_id))
-        knownfile2 = os.path.join('data', self.sta.sta_id, 'asos',
-                                  'raw', '{}_201201.dat'.format(self.sta.sta_id))
 
-        assert testfile1 == knownfile1
-        assert testfile2 == knownfile2
+def test_determine_reset_time(fake_rain_data):
+    dates, precip = fake_rain_data
+    result = station._determine_reset_time(dates, precip)
+    expected = 0
+    assert result == expected
 
-    def test_fetch_data(self):
-        status_asos = self.sta._fetch_data(self.ts, 1, src='asos')
-        status_wund = self.sta._fetch_data(self.ts, 1, src='wunderground')
-        known_statuses = ['ok', 'bad', 'not there']
-        assert status_asos in known_statuses
-        assert status_wund in known_statuses
 
-    def test_attempt_download(self):
-        status_asos, attempt1 = self.sta._attempt_download(self.ts, src='asos')
-        status_wund, attempt2 = self.sta._attempt_download(self.ts, src='wunderground')
-        known_statuses = ['ok', 'bad', 'not there']
-        assert status_asos in known_statuses
-        assert status_wund in known_statuses
-        self.ts2 = pandas.DatetimeIndex(start='1999-1-1', freq='D', periods=1)[0]
-        status_fail, attempt3 = self.sta._attempt_download(self.ts2, src='asos')
-        assert status_fail == 'not there'
+def test_process_precip(fake_rain_data):
+    dates, precip = fake_rain_data
+    result = station._process_precip(dates, precip, 0)
+    expected = numpy.array([
+        0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 5., 0., 0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1.,
+        0., 0., 0., 0., 0., 0., 0., 0., 0.
+    ])
+    nptest.assert_array_almost_equal(result, expected)
 
-        assert attempt1 <= self.max_attempts
-        assert attempt2 <= self.max_attempts
-        assert attempt3 == self.max_attempts
 
-    def test_process_file_asos(self):
-        filename, status = self.sta._process_file(self.ts, 'asos')
-
-        if os.path.sep == '/':
-            knownfile = 'data/%s/asos/flat/%s_201201.csv' % (self.sta.sta_id, self.sta.sta_id)
-        else:
-            knownfile = 'data\\%s\\asos\\flat\\%s_201201.csv' % (self.sta.sta_id, self.sta.sta_id)
-
-        assert filename == knownfile
-        known_statuses = ['ok', 'bad', 'not there']
-        assert status in known_statuses
-
-    def test_process_file_wunderground(self):
-        filename, status = self.sta._process_file(self.ts, 'wunderground')
-
-        if os.path.sep == '/':
-            knownfile = 'data/%s/wunderground/flat/%s_20120101.csv' % (self.sta.sta_id, self.sta.sta_id)
-        else:
-            knownfile = 'data\\%s\\wunderground\\flat\\%s_20120101.csv' % (self.sta.sta_id, self.sta.sta_id)
-
-        assert filename == knownfile
-        known_statuses = ['ok', 'bad', 'not there']
-        assert status in known_statuses
-
-    def test_read_csv_asos(self):
-        data, status = self.sta._read_csv(self.ts, 'asos')
-        known_columns = ['Sta', 'Date', 'Precip', 'Temp',
-                         'DewPnt', 'WindSpd', 'WindDir',
-                         'AtmPress', 'SkyCover']
-        for col in data.columns:
-            assert col in known_columns
-
-    def test_read_csv_wunderground(self):
-        data, status = self.sta._read_csv(self.ts, 'wunderground')
-        known_columns = ['Sta', 'Date', 'Precip', 'Temp',
-                         'DewPnt', 'WindSpd', 'WindDir',
-                         'AtmPress', 'SkyCover']
-        for col in data.columns:
-            assert col in known_columns
-
-    def test_getASOSData(self):
-        known_columns = ['Sta', 'Date', 'Precip', 'Temp',
-                         'DewPnt', 'WindSpd', 'WindDir',
-                         'AtmPress', 'SkyCover']
-        df = self.sta.getASOSData(self.start, self.end)
-        for col in df.columns:
-            assert col in known_columns
-
-        assert df.index.is_unique
-
-    def test_getWundergroundData(self):
-        known_columns = ['Sta', 'Date', 'Precip', 'Temp',
-                         'DewPnt', 'WindSpd', 'WindDir',
-                         'AtmPress', 'SkyCover']
-        df = self.sta.getWundergroundData(self.start, self.end)
-        for col in df.columns:
-            assert col in known_columns
-
-        assert df.index.is_unique
-
-    def test_getDataBadSource(self):
-        with pytest.raises(ValueError):
-            self.sta._get_data(self.start, self.end, 'fart', None)
-
-    def test_getDataGoodSource(self):
-        self.sta._get_data(self.start, self.end, 'asos', None)
-
-    def test_getDataSaveFile(self):
-        self.sta._get_data(self.start, self.end, 'asos', 'testfile.csv')
-
-    def test_parse_dates(self):
-        datestrings = ['2012-6-4', 'September 23, 1982']
-        knowndates = [datetime(2012, 6, 4), datetime(1982, 9, 23)]
-        for ds, kd in zip(datestrings, knowndates):
-            dd = station._parse_date(ds)
-            assert dd.year == kd.year
-            assert dd.month == kd.month
-            assert dd.day == kd.day
-
-    def test_date_asos(self):
-        teststring = '24229KPDX PDX20010101000010001/01/01 00:00:31  5-MIN KPDX'
-        knowndate = datetime(2001, 1, 1, 0, 0)
-        assert station._date_ASOS(teststring) == knowndate
-
-    def test_append_val(self):
-        x = FakeClass()
-        knownlist = ['item1', 'item2', 'NA']
-        testlist = ['item1']
-        testlist = station._append_val(x, testlist)
-        testlist = station._append_val(None, testlist)
-        assert testlist == knownlist
-
-    def test_determine_reset_time(self):
-        test_rt = station._determine_reset_time(self.dates, self.fakeprecip)
-        known_rt = 0
-        assert known_rt == test_rt
-
-    def test_process_precip(self):
-        p2 = station._process_precip(self.dates, self.fakeprecip)
-        assert numpy.all(p2 <= self.fakeprecip)
-
-    def test_process_sky_cover(self):
-        teststring = 'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 RMK AO2 SLP262 T00390028 53010 $'
-        obs = station.MetarParser(teststring)
-        testval = station._process_sky_cover(obs)
-        assert testval == 1.0000
-
-    def test_loadCompData_asos(self):
-        self.sta.loadCompiledFile('asos', filename='testfile.csv')
-        self.sta.loadCompiledFile('asos', filenum=1)
-
-    def test_loadCompData_wunderground(self):
-        self.sta.loadCompiledFile('wunderground', filename='testfile.csv')
-        self.sta.loadCompiledFile('wunderground', filenum=1)
-
-    def test_loadCompData_wunderground_nonairport(self):
-        self.sta2.loadCompiledFile('wunder_nonairport', filename='testfile.csv')
-        self.sta2.loadCompiledFile('wunder_nonairport', filenum=1)
+def test_process_sky_cover():
+    teststring = (
+        'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 '
+        'RMK AO2 SLP262 T00390028 53010 $'
+    )
+    obs = station.MetarParser(teststring)
+    testval = station._process_sky_cover(obs)
+    assert testval == 1.0000
 
 
 def test_getAllStations():
@@ -268,47 +146,172 @@ def test_getStationByID():
     assert sta.lon == '122-36-01W'
 
 
-class BaseDataFetch_Mixin(object):
-    def test_station_fetch_no_file(self):
-        with mock.patch.object(self.station, self.fetcher_name) as gad:
-            self.fetcher(self.station, '2012-1-1', '2012-2-1')
-            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename=None)
-
-    def test_station_fetch_with_file(self):
-        with mock.patch.object(self.station, self.fetcher_name) as gad:
-            self.fetcher(self.station, '2012-1-1', '2012-2-1', filename='test.csv')
-            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename='test.csv')
-
-    def test_string_fetch_no_file(self):
-        with mock.patch.object(station.WeatherStation, self.fetcher_name) as gad:
-            self.fetcher(self.sta_id, '2012-1-1', '2012-2-1')
-            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename=None)
-
-    def test_string_fetch_with_file(self):
-        with mock.patch.object(station.WeatherStation, self.fetcher_name) as gad:
-            self.fetcher(self.sta_id, '2012-1-1', '2012-2-1', filename='test.csv')
-            gad.assert_called_once_with('2012-1-1', '2012-2-1', filename='test.csv')
+@pytest.mark.parametrize('attribute', [
+    'sta_id', 'city', 'state', 'country', 'position',
+    'name', 'wunderground', 'asos', 'errorfile'
+])
+def test_WS_attributes(sta, attribute):
+    assert hasattr(sta, attribute)
 
 
-class Test_getASOSData(BaseDataFetch_Mixin):
-    def setup(self):
-        self.sta_id = 'KPDX'
-        self.station = station.WeatherStation(self.sta_id)
-        self.fetcher_name = 'getASOSData'
-        self.fetcher = station.getASOSData
+def test_WS_find_dir(sta):
+    result = sta._find_dir('asos', 'raw')
+    expected = os.path.join(sta.datadir, sta.sta_id, 'asos', 'raw')
+    assert result == expected
 
 
-class Test_getWundergroundData(BaseDataFetch_Mixin):
-    def setup(self):
-        self.sta_id = 'KPDX'
-        self.station = station.WeatherStation(self.sta_id)
-        self.fetcher_name = 'getWundergroundData'
-        self.fetcher = station.getWundergroundData
+def test_WS_find_file(sta, ts):
+    asos_result = sta._find_file(ts[0], 'asos', 'raw')
+    wunder_result = sta._find_file(ts[0], 'wunderground', 'flat')
+
+    asos_expected = '{}_201201.dat'.format(sta.sta_id)
+    wunder_expected = '{}_20120101.csv'.format(sta.sta_id)
+
+    assert asos_result == asos_expected
+    assert wunder_result == wunder_expected
 
 
-class Test_getWunderground_NonAirportData(BaseDataFetch_Mixin):
-    def setup(self):
-        self.sta_id = 'MWPKO3'
-        self.station = station.WeatherStation(self.sta_id)
-        self.fetcher_name = 'getWunderground_NonAirportData'
-        self.fetcher = station.getWunderground_NonAirportData
+def test_WS_set_cookies(sta):
+    assert isinstance(sta.asos, request.OpenerDirector)
+    assert isinstance(sta.wunderground, request.OpenerDirector)
+
+
+def test_WS_url_by_date(sta, ts):
+    wunder_result = sta._url_by_date(ts[0], src='wunderground')
+    asos_result = sta._url_by_date(ts[0], src='asos')
+    wunder_expected = (
+        "http://www.wunderground.com/history/airport/{}"
+        "/2012/01/01/DailyHistory.html?&&theprefset=SHOWMETAR"
+        "&theprefvalue=1&format=1"
+    ).format(sta.sta_id)
+
+    asos_expected = (
+        "ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin"
+        "/6401-2012/64010{}201201.dat"
+    ).format(sta.sta_id)
+
+    assert wunder_result == wunder_expected
+    assert asos_result == asos_expected
+
+
+def test_WS_make_data_file(sta, ts):
+    wunder_result = sta._make_data_file(ts[0], 'wunderground', 'flat')
+    asos_result = sta._make_data_file(ts[0], 'asos', 'raw')
+
+    wunder_expected = os.path.join(sta.datadir, sta.sta_id, 'wunderground',
+                                   'flat', '{}_20120101.csv'.format(sta.sta_id))
+    asos_expected = os.path.join(sta.datadir, sta.sta_id, 'asos',
+                                 'raw', '{}_201201.dat'.format(sta.sta_id))
+
+    assert wunder_result == wunder_expected
+    assert asos_result == asos_expected
+
+
+@pytest.mark.parametrize(('fetcher_name', 'fetcher_key'), [
+    ('getASOSData', 'asos'),
+    ('getWundergroundData', 'wunderground'),
+    ('getWunderground_NonAirportData', 'wunder_nonairport')
+])
+def test_WS_get_data_APIs(sta, fetcher_name, fetcher_key):
+    startdate = '2011-03-01'
+    enddate = '2012-01-01'
+    filename = 'mock.csv'
+    fetcher = getattr(sta, fetcher_name)
+    with mock.patch.object(sta, '_get_data') as gd:
+        fetcher(startdate, enddate, filename)
+        gd.assert_called_once_with(startdate, enddate, fetcher_key, filename)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('tstamp', ['2012-01-01', '1999-01-01'])
+def test_fetch_data(sta, tstamp, known_statuses):
+    tstamp = pandas.Timestamp(tstamp)
+    status_asos = sta._fetch_data(tstamp, 1, src='asos')
+    status_wund = sta._fetch_data(tstamp, 1, src='wunderground')
+    assert status_asos in known_statuses
+    assert status_wund in known_statuses
+
+
+@pytest.mark.slow
+def test_attempt_download(sta, known_statuses):
+    good_ts = pandas.Timestamp('2012-01-01')
+    bad_ts = pandas.Timestamp('1999-01-01')
+    status_asos, attempt1 = sta._attempt_download(good_ts, src='asos')
+    status_wund, attempt2 = sta._attempt_download(good_ts, src='wunderground')
+
+    assert status_asos in known_statuses
+    assert status_wund in known_statuses
+
+    status_fail, attempt3 = sta._attempt_download(bad_ts, src='asos')
+    assert status_fail == 'not there'
+
+    assert attempt1 <= sta.max_attempts
+    assert attempt2 <= sta.max_attempts
+    assert attempt3 == sta.max_attempts
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('src, datestr', [
+    ('asos', '201201'),
+    ('wunderground', '20120101'),
+])
+def test_process_file(sta, src, datestr, known_statuses):
+    tstamp = pandas.Timestamp('2012-01-01')
+    filename, status = sta._process_file(tstamp, src)
+    knownpath = os.path.join(sta.datadir, sta.sta_id, src, 'flat',
+                             '{}_{}.csv'.format(sta.sta_id, datestr))
+
+    assert filename == knownpath
+    assert status in known_statuses
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('src, has_dwpt', [
+    pytest.mark.xfail(('wunderground', True)),
+    ('asos', True),
+])
+def test_read_csv_XXXX(sta, ts, src, has_dwpt):
+    data, status = sta._read_csv(ts[0], src)
+    known_columns = ['DewPnt', 'Sta', 'Date', 'Precip', 'Temp',
+                     'WindSpd', 'WindDir', 'AtmPress', 'SkyCover']
+    if not has_dwpt:
+        known_columns = known_columns[1:]
+    assert sorted(data.reset_index().columns.tolist()) == sorted(known_columns)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('gettername, has_dwpt', [
+    pytest.mark.xfail(('getWundergroundData', True)),
+    ('getASOSData', True),
+])
+def test_getXXXData(sta, gettername, has_dwpt, start, end):
+    known_columns = ['DewPnt', 'Sta', 'Date', 'Precip',
+                     'Temp', 'WindSpd', 'WindDir',
+                     'AtmPress', 'SkyCover']
+    if not has_dwpt:
+        known_columns = known_columns[1:]
+
+    getter = getattr(sta, gettername)
+    df = getter(start, end)
+    assert sorted(df.reset_index().columns.tolist()) == sorted(known_columns)
+    assert df.index.is_unique
+
+
+@pytest.mark.slow
+def test_getDataSaveFile(sta, start, end):
+    sta._get_data(start, end, 'asos', 'testfile.csv')
+
+
+def test_loadCompData_asos(sta):
+    sta.loadCompiledFile('asos', filename='testfile.csv')
+    sta.loadCompiledFile('asos', filenum=1)
+
+
+def test_loadCompData_wunderground(sta):
+    sta.loadCompiledFile('wunderground', filename='testfile.csv')
+    sta.loadCompiledFile('wunderground', filenum=1)
+
+
+def test_loadCompData_wunderground_nonairport(sta):
+    sta.loadCompiledFile('wunder_nonairport', filename='testfile.csv')
+    sta.loadCompiledFile('wunder_nonairport', filenum=1)
