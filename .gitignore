@@ -13,6 +13,7 @@
 # test output
 .noseids
 .coverage
+.cache
 result_images
 
 # Packages #
@@ -53,6 +54,7 @@ Thumbs.db
 *.pyproj
 *.sln
 *.suo
+*.vscode
 
 # Sphinx Docs #
 ###############

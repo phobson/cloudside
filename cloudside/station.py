@@ -42,6 +42,12 @@ __all__ = [
 ]
 
 
+def _report_match(handler, match):
+    """Report success or failure of the given handler function. (DEBUG)"""
+    if not match:
+        logging.debug('{} did not match'.format(handler.__name__))
+
+
 class MetarParser(Metar.Metar):
     def __init__(self, metarcode, month=None, year=None, utcdelta=None,
                  errorfile=None):
@@ -94,7 +100,7 @@ class MetarParser(Metar.Metar):
         else:
             self._utcdelta = datetime.datetime.now() - self._now
 
-        logging.basicConfig(filename=errorfile, filemode='a', level=logging.INFO)
+        logging.basicConfig(filename=errorfile, filemode='a', level=logging.WARNING)
 
         self._month = month
         self._year = year
@@ -106,11 +112,11 @@ class MetarParser(Metar.Metar):
             ifailed = -1
             while igroup < ngroup and code:
                 pattern, handler, repeatable = self.handlers[igroup]
-                logging.debug(handler.__name__, ":", code)
+                logging.debug('{}: {}'.format(handler.__name__, code))
                 m = pattern.match(code)
                 while m:
                     ifailed = -1
-                    logging.debug(Metar._report_match(handler, m.group()))
+                    _report_match(handler, m.group())
                     handler(self, m.groupdict())
                     code = code[m.end():]
                     if self._trend:
@@ -118,7 +124,7 @@ class MetarParser(Metar.Metar):
                     if not repeatable:
                         break
 
-                    logging.debug(handler.__name__, ":", code)
+                    logging.debug('{}: {}'.format(handler.__name__, code))
                     m = pattern.match(code)
 
                 if not m and ifailed < 0:
@@ -126,11 +132,11 @@ class MetarParser(Metar.Metar):
 
                 igroup += 1
                 if igroup == ngroup and not m:
-                    pattern, handler = (UNPARSED_RE, _unparsedGroup)
-                    logging.debug(handler.__name__, ":", code)
+                    pattern, handler = (Metar.UNPARSED_RE, self._unparsed_group_handler)
+                    logging.info('{}: {}'.format(handler.__name__, code))
                     m = pattern.match(code)
-                    logging.debug(Metar._report_match(handler, m.group()))
-                    handler(self, m.groupdict())
+                    _report_match(handler, m.group())
+                    handler(m.groupdict())
                     code = code[m.end():]
                     igroup = ifailed
 
@@ -138,13 +144,13 @@ class MetarParser(Metar.Metar):
                     #  groups, we'll try parsing this group as a remark
                     ifailed = -2
 
-            if pattern == REMARK_RE or self.press:
+            if pattern == Metar.REMARK_RE or self.press:
                 while code:
-                    for pattern, handler in Metar.remark_handlers:
-                        logging.debug(handler.__name__, ":", code)
+                    for pattern, handler in self.remark_handlers:
+                        logging.debug('{}: {}'.format(handler.__name__, code))
                         m = pattern.match(code)
                         if m:
-                            logging.debug(Metar._report_match(handler, m.group()))
+                            _report_match(handler, m.group())
                             handler(self, m.groupdict())
                             code = pattern.sub("", code, 1)
                             break
@@ -154,7 +160,13 @@ class MetarParser(Metar.Metar):
 
         if self._unparsed_groups:
             code = ' '.join(self._unparsed_groups)
-            logging.error("Unparsed groups in body: " + code)
+            logging.warning("Unparsed groups in body: " + code)
+
+    def _unparsed_group_handler(self, d):
+        """
+        Handle otherwise unparseable main-body groups.
+        """
+        self._unparsed_groups.append(d['group'])
 
 
 class WeatherStation(object):
@@ -199,14 +211,19 @@ class WeatherStation(object):
             self.name = self.city
 
         self.datadir = datadir or os.path.join('data')
-        if errorfile is not None:
-            self.errorfile = os.path.join(self.datadir, errorfile)
-        else:
-            self.errorfile = None
+        self._errorfile = errorfile
 
         self._wunderground = None
         self._wunder_nonairport = None
         self._asos = None
+
+    @property
+    def errorfile(self):
+        return self._errorfile
+
+    @errorfile.setter
+    def errorfile(self, value):
+        self._errorfile = value
 
     @property
     def max_attempts(self):
@@ -500,6 +517,7 @@ class WeatherStation(object):
 
             datain.close()
             dataout.close()
+
         flatstatus = validate.file_status(flatfilename)
         return flatfilename, flatstatus
 
@@ -817,6 +835,7 @@ def getStationByID(sta_id):
 def _fetch_data(fetcher_name, station, startdate, enddate, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
+        station.errorfile = '{}.log'.format(station.sta_id)
 
     fetcher = getattr(station, fetcher_name)
     return fetcher(startdate, enddate, filename=filename)
