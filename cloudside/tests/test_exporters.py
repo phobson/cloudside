@@ -1,11 +1,15 @@
 import os
 import sys
+import tempfile
 import datetime as dt
 
 import pandas
 import matplotlib
 import matplotlib.pyplot as plt
 from io import StringIO
+
+import pytest
+import pandas.util.testing as pdtest
 
 from cloudside import station
 from cloudside import exporters
@@ -16,223 +20,139 @@ def getTestFile(filename):
     return os.path.join(current_dir, 'data', filename)
 
 
-class Test_exporter(object):
-    def setup(self):
-        self.fivemin = pandas.read_csv(getTestFile('data_for_tests.csv'),
-                                       parse_dates=True, index_col=0)
-        self.hourly = self.fivemin.resample('1H', how='sum')
+@pytest.fixture
+def fivemin():
+    return pandas.read_csv(getTestFile('data_for_tests.csv'), parse_dates=True, index_col=0)
 
-        self.known_fivemin_swmm5_file = getTestFile('known_fivemin_swmm5.dat')
-        self.known_hourly_swmm5_file = getTestFile('known_hourly_swmm5.dat')
-        self.known_hourly_ncdc_file = getTestFile('known_hourly_NCDC.dat')
 
-        with open(self.known_fivemin_swmm5_file, 'r') as f:
-            self.known_fivemin_swmm5 = f.read()
-
-        with open(self.known_hourly_swmm5_file, 'r') as f:
-            self.known_hourly_swmm = f.read()
-
-        with open(self.known_hourly_ncdc_file, 'r') as f:
-            self.known_hourly_ncdc = f.read()
-
-        self.known_columns = ['station', 'year', 'month', 'day',
-                              'hour', 'minute', 'precip']
-
-    def test_dumpSWMM5Format_form(self):
+@pytest.mark.parametrize(('dropzeros', 'shape'), [
+    (True, (178, 7)),
+    (False, (336, 7))
+])
+def test_dumpSWMM5Format_form(fivemin, dropzeros, shape):
+    with tempfile.TemporaryDirectory() as datadir:
+        outfile = os.path.join(datadir, 'test_dumpSWMM.dat')
         data = exporters.SWMM5Format(
-            self.fivemin,
+            fivemin,
             'Test-Station',
             col='precip',
             freq='5min',
-            dropzeros=True,
-            filename=getTestFile('test_dumpSWMM.dat')
+            dropzeros=dropzeros,
+            filename=outfile
         )
+        expected_cols = ['station', 'year', 'month', 'day', 'hour', 'minute', 'precip']
         assert isinstance(data, pandas.DataFrame)
-        assert data.columns.tolist() == self.known_columns
+        assert data.columns.tolist() == expected_cols
+        assert data.shape == shape
+        assert data['precip'].sum() == fivemin['precip'].sum()
+        if dropzeros:
+            assert data[data.precip == 0].shape[0] == 0
 
-    def test_dumpSWMM5Format_DropZeros(self):
+
+@pytest.mark.parametrize(('freq', 'expected_file'), [
+    ('5min', 'known_fivemin_swmm5.dat'),
+    ('hourly', 'known_hourly_swmm5.dat')
+])
+def test_dumpSWMM5Format_results(fivemin, freq, expected_file):
+    if freq == 'hourly':
+        data = fivemin.resample('1H').sum()
+    else:
+        data = fivemin
+
+    with tempfile.TemporaryDirectory() as datadir:
+        outfile = os.path.join(datadir, 'test_dumpSWMM.dat')
         data = exporters.SWMM5Format(
-            self.fivemin,
+            data,
             'Test-Station',
             col='precip',
-            freq='5min',
+            freq=freq,
             dropzeros=True,
-            filename=getTestFile('test_dumpSWMM_withoutZeros.dat')
+            filename=outfile
         )
-        assert data[data.precip == 0].shape[0] == 0
-
-    def test_dumpSWMM5Format_KeepZeros(self):
-        data = exporters.SWMM5Format(
-            self.fivemin,
-            'Test-Station',
-            col='precip',
-            freq='5min',
-            dropzeros=False,
-            filename=getTestFile('test_dumpSWMM_withZeros.dat')
+        pdtest.assert_frame_equal(
+            data.reset_index(drop=True),
+            pandas.read_table(getTestFile(expected_file), sep='\t')
         )
-        assert data[data.precip == 0].shape[0] > 0
 
-    def test_dumpSWMM5Format_Result5min(self):
-        testfilename = getTestFile('test_dumpSWMM_fivemin.dat')
-        data = exporters.SWMM5Format(
-            self.fivemin,
-            'Test-Station',
-            col='precip',
-            freq='5min',
-            dropzeros=True,
-            filename=testfilename
-        )
-        with open(self.known_fivemin_swmm5_file, 'r') as f:
-            known_data = f.read()
 
-        with open(testfilename, 'r') as f:
-            test_data = f.read()
-
-        assert known_data == test_data
-
-    def test_dumpSWMM5Format_ResultHourly(self):
-        testfilename = getTestFile('test_dumpSWMM_hourly.dat')
-        data = exporters.SWMM5Format(
-            self.fivemin,
-            'Test-Station',
-            col='precip',
-            freq='hourly',
-            dropzeros=False,
-            filename=testfilename
-        )
-        with open(self.known_hourly_swmm5_file, 'r') as f:
-            known_data = f.read()
-
-        with open(testfilename, 'r') as f:
-            test_data = f.read()
-
-        assert known_data == test_data
-
-    def test_dumpNCDCFormat(self):
-        testfilename = getTestFile('test_dumpNCDCFormat.dat')
+def test_dumpNCDCFormat(fivemin):
+    knownfile = getTestFile('known_hourly_NCDC.dat')
+    with tempfile.TemporaryDirectory() as datadir:
+        outfile = os.path.join(datadir, 'test_dumpNCDC.dat')
         data = exporters.NCDCFormat(
-            self.hourly,
+            fivemin.resample('1H').sum(),
             '041685',
             'California',
             col='precip',
-            filename=testfilename
+            filename=outfile
         )
 
-        with open(self.known_hourly_ncdc_file, 'r') as f:
+        with open(knownfile, 'r') as f:
             known_data = f.read()
 
-        with open(testfilename, 'r') as f:
+        with open(outfile, 'r') as f:
             test_data = f.read()
 
         assert known_data == test_data
 
 
-class Test__pop_many(object):
-    def setup(self):
-        self.x = list('12345678')
-        self.known_L1 = '1'
-        self.known_L3 = '123'
-        self.known_R1 = '8'
-        self.known_R4 = '5678'
-
-    def test_left1(self):
-        popped = exporters._pop_many(self.x, 1)
-        assert popped == self.known_L1
-
-    def test_left3(self):
-        popped = exporters._pop_many(self.x, 3)
-        assert popped == self.known_L3
-
-    def test_right1(self):
-        popped = exporters._pop_many(self.x, 1, side='riGHt')
-        assert popped == self.known_R1
-
-    def test_right4(self):
-        popped = exporters._pop_many(self.x, 4, side='riGHt')
-        assert popped == self.known_R4
+@pytest.mark.parametrize(('N', 'side', 'expected'), [
+    (1, 'left', '1'),
+    (3, 'lEFt', '123'),
+    (1, 'right', '8'),
+    (4, 'RighT', '5678')
+])
+def test__pop_many(N, side, expected):
+    x = list('12345678')
+    result = exporters._pop_many(x, N, side=side)
+    assert result == expected
 
 
-class _baseParseWriteObsMixin(object):
-    def test_parse(self):
-        parsed_obs = exporters._parse_obs(list(self.obs))
-        assert parsed_obs == self.known_parsed
-
-    def test__write(self):
-        row = exporters._write_obs('testheader', 2012, 5, 16, self.known_parsed)
-        assert row == self.known_row
-
-
-class TestParseWrite_ZeroWithFlag(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '1300000000M'
-        self.known_parsed = (12, 00, 0.00, 'M')
-        self.known_row = 'testheader,2012-05-16 12:00,0.00,M\n'
+@pytest.mark.parametrize(('obs', 'expected'), [
+    ('1300000000M', (12, 00, 0.00, 'M')),
+    ('1300000000', (12, 00, 0.00, '')),
+    ('2200099999M', (21, 00, None, 'M')),
+    ('0300000012A', (2, 00, 0.12, 'A')),
+    ('0300000145', (2, 00, 1.45, '')),
+    ('2500000005I', (24, 00, 0.05, 'I')),
+])
+def test__parse_obs(obs, expected):
+    result = exporters._parse_obs(list(obs))
+    assert result == expected
 
 
-class TestParseWrite_ZeroWithoutFlag(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '1300000000'
-        self.known_parsed = (12, 00, 0.00, '')
-        self.known_row = 'testheader,2012-05-16 12:00,0.00,\n'
+@pytest.mark.parametrize(('parsed_obs', 'expected'), [
+    ((12, 00, 0.00, 'M'), 'testheader,2012-05-16 12:00,0.00,M\n'),
+    ((12, 00, 0.00, ''), 'testheader,2012-05-16 12:00,0.00,\n'),
+    ((21, 00, None, 'M'), None),
+    ((2, 00, 0.12, 'A'), 'testheader,2012-05-16 02:00,0.12,A\n'),
+    ((2, 00, 1.45, ''), 'testheader,2012-05-16 02:00,1.45,\n'),
+    ((24, 00, 0.05, 'I'), None),
+])
+def test__write(parsed_obs, expected):
+    result = exporters._write_obs('testheader', 2012, 5, 16, parsed_obs)
+    assert result == expected
 
 
-class TestParseWrite_Invalid(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '2200099999M'
-        self.known_parsed = (21, 00, None, 'M')
-        self.known_row = None
-
-
-class TestParseWrite_NonZeroWithFlag(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '0300000012A'
-        self.known_parsed = (2, 00, 0.12, 'A')
-        self.known_row = 'testheader,2012-05-16 02:00,0.12,A\n'
-
-
-class TestParseWrite_NonZeroWithoutFlag(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '0300000145'
-        self.known_parsed = (2, 00, 1.45, '')
-        self.known_row = 'testheader,2012-05-16 02:00,1.45,\n'
-
-
-class TestParseWrite_EndOfDay(_baseParseWriteObsMixin):
-    def setup(self):
-        self.obs = '2500000005I'
-        self.known_parsed = (24, 00, 0.05, 'I')
-        self.known_row = None
-
-
-class _baseObsFromRow(object):
-    def test_basic(self):
-        obs = exporters._obs_from_row(self.row)
-        assert obs == self.known_obs
-
-
-class TestObsFromRow_Baseline(_baseObsFromRow):
-    def setup(self):
-        self.row = (
-            'HPD04511406HPCPHI19480700010040100000000  '
-            '1300000000M 2400000000M 2500000000I '
-        )
-        self.known_obs = [
+@pytest.mark.parametrize(('row', 'expected'), [
+    (
+        'HPD04511406HPCPHI19480700010040100000000 1300000000M 2400000000M 2500000000I ',
+        [
             '045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n',
             '045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n',
             '045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n'
         ]
-
-
-class TestObsFromRow_WithInvalids(_baseObsFromRow):
-    def setup(self):
-        self.row = (
-            'HPD04511406HPCPHI19480700010040100000000  '
-            '0800000185A 0900099999M 1300000000M 2400000000M '
-            '2500000000I '
-        )
-        self.known_obs = [
+    ),
+    (
+        'HPD04511406HPCPHI19480700010040100000000 0800000185A 0900099999M 1300000000M 2400000000M 2500000000I ',
+        [
             '045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n',
             '045114,HPD,06HPCP,HI,1948-07-01 07:00,1.85,A\n',
             '045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n',
             '045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n'
         ]
+    )
+])
+def test__obs_from_row(row, expected):
+    result = exporters._obs_from_row(row)
+    assert result == expected

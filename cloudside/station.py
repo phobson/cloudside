@@ -11,14 +11,11 @@ from urllib import request, error, parse
 from http import cookiejar
 import logging
 
-
 # math stuff
 import numpy as np
 import matplotlib
 import matplotlib.dates as mdates
 import pandas
-import logging
-
 
 # metar stuff
 from metar import Metar, Datatypes
@@ -160,7 +157,7 @@ class MetarParser(Metar.Metar):
 
         if self._unparsed_groups:
             code = ' '.join(self._unparsed_groups)
-            logging.warning("Unparsed groups in body: " + code)
+            logging.info("Unparsed groups in body: " + code)
 
     def _unparsed_group_handler(self, d):
         """
@@ -174,15 +171,14 @@ class WeatherStation(object):
 
     Parameters
     ----------
-
     sta_id : string
         The handles of the station. For airports, these are prefixed
         with a "K" (e.g., KPDX for the Portland International Airport)
-    city, state, country : optional strings or None (default)
+    city, state, country : strings or None (default), optional
         The administrative location of the station.
-    lat, lon : optional floats or None (default)
+    lat, lon : floats or None (default), optional
         The geographic coordinates (x, y) of the station.
-    max_attempts : optional int (default = 10)
+    max_attempts : int, optional (default = 10)
         The upper limit to the number of times the downloaders will
         try to retrieve a file from the web.
 
@@ -259,8 +255,8 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *step* : 'raw' or 'flat' or 'compile'
         '''
-        validate.source(src)
-        validate.step(step)
+        src = validate.source(src)
+        step = validate.step(step)
         return os.path.join(self.datadir, self.sta_id, src.lower(), step.lower())
 
     def _find_file(self, timestamp, src, step):
@@ -273,8 +269,8 @@ class WeatherStation(object):
             *step* : 'raw' or 'flat'
         '''
         date = timestamp.to_pydatetime()
-        validate.source(src)
-        validate.step(step)
+        src = validate.source(src)
+        step = validate.step(step)
 
         if step == 'raw':
             ext = 'dat'
@@ -298,26 +294,27 @@ class WeatherStation(object):
         jar = cookiejar.CookieJar()
         handler = request.HTTPCookieProcessor(jar)
         opener = request.build_opener(handler)
+        URLs = {
+            'wunderground': [
+                'http://www.wunderground.com/history/airport/{}/2011/12/4/DailyHistory.html?',
+                ('http://www.wunderground.com/cgi-bin/findweather/'
+                 'getForecast?setpref=SHOWMETAR&value=1'),
+                ('http://www.wunderground.com/history/airport/{}/2011/12/4/DailyHistory.html'
+                 '?&&theprefset=SHOWMETAR&theprefvalue=1&format=1'),
+            ],
+            'asos': ['ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin/'],
+            'wunder_nonairport': [
+                ('http://www.wunderground.com/weatherstation/WXDailyHistory.asp'
+                 '?ID=MEGKO3&day=1&year=2013&month=1&graphspan=day&format=1')
+            ]
+        }
+
+        urls_to_open = URLs.get(src.lower())
         try:
-            if src.lower() == 'wunderground':
-                url1 = 'http://www.wunderground.com/history/airport/%s/2011/12/4/DailyHistory.html?' % self.sta_id
-                url2 = 'http://www.wunderground.com/cgi-bin/findweather/getForecast?setpref=SHOWMETAR&value=1'
-                url3 = 'http://www.wunderground.com/history/airport/%s/2011/12/4/DailyHistory.html?&&theprefset=SHOWMETAR&theprefvalue=1&format=1' % self.sta_id
-
-                opener.open(url1)
-                opener.open(url2)
-                opener.open(url3)
-
-            elif src.lower() == 'asos':
-                url = 'ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin/'
-                opener.open(url)
-
-            elif src.lower() == 'wunder_nonairport':
-                url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID=MEGKO3&day=1&year=2013&month=1&graphspan=day&format=1'
-                opener.open(url)
-
+            for url in urls_to_open:
+                opener.open(url.format(self.sta_id))
         except error.URLError:
-            print(('connection to %s not available. working locally' % src))
+            print('Unable to connect to {}. Working locally'.format(src))
 
         return opener
 
@@ -332,20 +329,26 @@ class WeatherStation(object):
         '''
         date = timestamp.to_pydatetime()
         "http://www.wunderground.com/history/airport/KDCA/1950/12/18/DailyHistory.html?format=1"
-        validate.source(src)
-        if src.lower() == 'wunderground':
-            baseurl = 'http://www.wunderground.com/history/airport/%s' % self.sta_id
+        src = validate.source(src)
+        if src == 'wunderground':
+            baseurl = 'http://www.wunderground.com/history/airport/{}'.format(
+                self.sta_id
+            )
             endurl = 'DailyHistory.html?&&theprefset=SHOWMETAR&theprefvalue=1&format=1'
             datestring = date.strftime('%Y/%m/%d')
-            url = '%s/%s/%s' % (baseurl, datestring, endurl)
+            url = '{}/{}/{}'.format(baseurl, datestring, endurl)
 
-        elif src.lower() == 'wunder_nonairport':
-            baseurl = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID=%s' % self.sta_id
-            endurl = '&day=%s&year=%s&month=%s&graphspan=day&format=1' % \
-                (date.strftime('%d'), date.strftime('%Y'), date.strftime('%m'))
-            url = '%s%s' % (baseurl, endurl)
+        elif src == 'wunder_nonairport':
+            baseurl = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?'
+            url = '{}ID={}&day={}&year={}&month={}&graphspan=day&format=1'.format(
+                baseurl,
+                self.sta_id,
+                date.strftime('%d'),
+                date.strftime('%Y'),
+                date.strftime('%m')
+            )
 
-        elif src.lower() == 'asos':
+        elif src == 'asos':
             baseurl = 'ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin/6401-'
             url = '%s%s/64010%s%s%02d.dat' % \
                   (baseurl, date.year, self.sta_id, date.year, date.month)
@@ -363,11 +366,11 @@ class WeatherStation(object):
             *src* : 'asos' or 'wunderground'
             *step* : 'raw' or 'flat'
         '''
-        validate.source(src)
-        validate.step(step)
+        src = validate.source(src)
+        step = validate.step(step)
         destination = self._find_dir(src, step)
         datafile = self._find_file(timestamp, src, step)
-        validate.data_directory(destination.split(os.path.sep))
+        os.makedirs(destination, exist_ok=True)
         return os.path.join(destination, datafile)
 
     def _fetch_data(self, timestamp, attempt, src='asos', force_download=False):
@@ -443,7 +446,7 @@ class WeatherStation(object):
         input:
             *timestamp* : a pandas timestamp object
         '''
-        validate.source(src)
+        src = validate.source(src)
         rawfilename = self._make_data_file(timestamp, src, 'raw')
         flatfilename = self._make_data_file(timestamp, src, 'flat')
         if not os.path.exists(rawfilename):
@@ -497,7 +500,8 @@ class WeatherStation(object):
                 dates = np.array(dates)
 
                 if src == 'asos':
-                    final_precip = _process_precip(dates, rains)
+                    reset_time = _determine_reset_time(dates, rains)
+                    final_precip = _process_precip(dates, rains, reset_time)
                 else:
                     final_precip = rains
 
@@ -546,7 +550,8 @@ class WeatherStation(object):
 
         flatstatus = validate.file_status(flatfilename)
         if flatstatus == 'ok':
-            data = pandas.read_csv(flatfilename, index_col=False, parse_dates=[icol], header=headerrows[src])
+            data = pandas.read_csv(flatfilename, index_col=False, parse_dates=[icol],
+                                   header=headerrows[src])
             data.set_index(data.columns[icol], inplace=True)
 
         else:
@@ -569,7 +574,7 @@ class WeatherStation(object):
         Returns:
             *data* : a pandas data frame of the data for this station
         '''
-        validate.source(source)
+        source = validate.source(source)
 
         freq = {
             'asos': 'MS',
@@ -577,12 +582,8 @@ class WeatherStation(object):
             'wunder_nonairport': 'D'
         }
 
-        try:
-            timestamps = pandas.DatetimeIndex(start=startdate, end=enddate,
-                                              freq=freq[source])
-        except KeyError:
-            raise ValueError('source must be either "ASOS" or "wunderground"')
-
+        timestamps = pandas.DatetimeIndex(start=startdate, end=enddate,
+                                          freq=freq[source])
         data = None
         for n, ts in self.tracker(enumerate(timestamps)):
             if data is None:
@@ -598,30 +599,53 @@ class WeatherStation(object):
 
         if filename is not None:
             compdir = self._find_dir(source, 'compile')
-            validate.data_directory(compdir.split(os.path.sep))
+            os.makedirs(compdir, exist_ok=True)
             final_data.to_csv(os.path.join(compdir, filename))
 
         return final_data
 
     def getASOSData(self, startdate, enddate, filename=None):
-        '''
-        This function will return ASOS data in the form of a pandas dataframe
-        for the station between *startdate* and *enddate*.
+        """Downloads ASOS data to a file and returns a dataframe.
 
-        Input:
-            *startdate* : string representing the earliest date for the data
-            *enddate* : string representing the latest data for the data
+        Parameters
+        ----------
+        startdate, endate : date-like object or date string
+            The time windows for which data should be downloaded
+        filename : string, optional
+            Path and filename of where the data should be saved
 
-        Returns:
-            *data* : a pandas data frame of the ASOS data for this station
+        Returns
+        -------
+        data : pandas.DataFrame
 
-        Example:
-        >>> import metar.Station as Station
-        >>> startdate = '2012-1-1'
+        Examples
+        --------
+        >>> import cloudside
+        >>> startdate = '2012-01-01'
         >>> enddate = 'September 30, 2012'
-        >>> pdx = Station.getStationByID('KPDX')
-        >>> data = pdx.getASOSdata(startdate, enddate)
-        '''
+        >>> fname = 'PDX_Q1thruQ3.csv'
+        >>> pdx = cloudside.getStationByID('KPDX')
+        >>> data = pdx.getASOSdata(startdate, enddate, filename=fname)
+
+        Notes
+        -----
+        ASOS data can have quality issues. At a bare minimum, we recommend the
+        following:
+
+          1. Screen for unreasonably high values in the ASOS data. This can
+             happen. They stick out like a sore thumb when sorting or plotting
+             the data. Just remove them.
+          2. Compare monthly and daily totals between the ASOS data and the
+             co-located NCDC hourly station (available for free download at
+             NCDC website). The NCDC hourly data have better quality control.
+             Where there are significant deviations, this can indicate anomalous
+             data that can be removed. Sometimes this can result from a stuck
+             gage etc. This might not show up as an extreme value, but could be
+             an unusual pattern (e.g., 0.2 in/hr intensity continually for a
+             week)
+
+        """
+
         return self._get_data(startdate, enddate, 'asos', filename)
 
     def getWundergroundData(self, startdate, enddate, filename=None):
@@ -668,7 +692,7 @@ class WeatherStation(object):
 
     def _get_compiled_files(self, source):
         compdir = self._find_dir(source, 'compile')
-        validate.data_directory(compdir.split(os.path.sep))
+        os.makedirs(compdir, exist_ok=True)
         compfiles = os.listdir(compdir)
         return compdir, compfiles
 
@@ -714,9 +738,7 @@ def _parse_date(datestring):
     '''
     takes a date string and returns a datetime.datetime object
     '''
-    datenum = mdates.datestr2num(datestring)
-    dateval = mdates.num2date(datenum)
-    return dateval
+    return pandas.Timestamp(datestring).to_pydatetime()
 
 
 def _date_ASOS(metarstring):
@@ -762,19 +784,18 @@ def _determine_reset_time(date, precip):
         return resetTime[0] * 5
 
 
-def _process_precip(dateval, p1):
+def _process_precip(dateval, p1, reset_time):
     '''convert 5-min rainfall data from cumuative w/i an hour to 5-min totals
     p = precip data (list)
     dt = list of datetime objects
     RT = point in the hour when the tip counter resets
-    #if (p1[n - 1] <= p1[n]) and (dt[n].minute != RT):'''
-    RT = _determine_reset_time(dateval, p1)
+    '''
     p2 = np.zeros(len(p1))
     p2[0] = p1[0]
     for n in range(1, len(p1)):
 
         tdelta_minutes = (dateval[n] - dateval[n - 1]).seconds / 60
-        if p1[n] < p1[n - 1] or dateval[n].minute == RT or tdelta_minutes != 5:
+        if p1[n] < p1[n - 1] or dateval[n].minute == reset_time or tdelta_minutes != 5:
             p2[n] = p1[n]
 
         else:
@@ -832,22 +853,21 @@ def getStationByID(sta_id):
     return sta
 
 
-def _fetch_data(fetcher_name, station, startdate, enddate, filename):
+def _get_data(station, startdate, enddate, source, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
         station.errorfile = '{}.log'.format(station.sta_id)
 
-    fetcher = getattr(station, fetcher_name)
-    return fetcher(startdate, enddate, filename=filename)
+    return station._get_data(startdate, enddate, source, filename=filename)
 
 
 def getASOSData(station, startdate, enddate, filename=None):
-    return _fetch_data('getASOSData', station, startdate, enddate, filename)
+    return _get_data(station, startdate, enddate, 'asos', filename)
 
 
 def getWundergroundData(station, startdate, enddate, filename=None):
-    return _fetch_data('getWundergroundData', station, startdate, enddate, filename)
+    return _get_data(station, startdate, enddate, 'wunderground', filename)
 
 
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
-    return _fetch_data('getWunderground_NonAirportData', station, startdate, enddate, filename)
+    return _get_data(station, startdate, enddate, 'wunder_nonairport', filename)
