@@ -5,6 +5,7 @@ from matplotlib import pyplot
 import pytest
 
 from cloudside import validate
+from .helpers import raises
 
 
 def getTestFile(filename):
@@ -31,22 +32,33 @@ def test_axes_object_with_None():
     assert isinstance(fig1, pyplot.Figure)
 
 
-def test_source():
-    validate.source('asos')
-    validate.source('wunderground')
-    with pytest.raises(ValueError):
-        validate.source('junk')
+@pytest.mark.parametrize(('src', 'error'), [
+    ('asos', None),
+    ('wunderground', None),
+    ('junk', ValueError)
+])
+def test_source(src, error):
+    with raises(error):
+        validate.source(src)
 
 
-def test_step():
+@pytest.mark.parametrize(('step', 'error'), [
+    ('flat', None),
+    ('raw', None),
+    ('junk', ValueError)
+])
+def test_step(step, error):
     validate.step('flat')
     validate.step('raw')
     with pytest.raises(ValueError):
         validate.step('junk')
 
 
-def test_file_status():
-    known_results = ['bad', 'ok', 'not there']
-    for n, known_result in enumerate(known_results, 1):
-        fn = getTestFile('testfile{:d}'.format(n))
-        validate.file_status(fn) == known_result
+@pytest.mark.parametrize(('filename', 'expected'), [
+    ('status_ok', 'ok'),
+    ('status_bad', 'bad'),
+    ('doesnotexist', 'not there'),
+])
+def test_file_status(filename, expected):
+    fn = getTestFile(filename)
+    validate.file_status(fn) == expected
