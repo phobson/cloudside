@@ -1,7 +1,5 @@
 from pkg_resources import resource_filename
 
-
-import numpy
 import pandas
 
 import pytest

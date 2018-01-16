@@ -4,9 +4,6 @@ import tempfile
 import datetime as dt
 
 import pandas
-import matplotlib
-import matplotlib.pyplot as plt
-from io import StringIO
 
 import pytest
 import pandas.util.testing as pdtest

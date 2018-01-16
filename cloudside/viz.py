@@ -1,7 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import numpy
+from matplotlib import pyplot
 from matplotlib.ticker import FuncFormatter
-import matplotlib.dates as dates
+from matplotlib.dates import DateFormatter
 import pandas
 
 
@@ -71,7 +71,7 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
         raise ValueError('input `dataframe` must have a `%s` column' % col)
 
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = pyplot.subplots()
     else:
         fig = ax.figure
 
@@ -79,10 +79,10 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
 
     data.plot(ax=ax, kind=plotkind)
     if rule == 'A':
-        xformat = dates.DateFormatter('%Y')
+        xformat = DateFormatter('%Y')
         ax.xaxis.set_major_formatter(xformat)
     elif rule == 'M':
-        xformat = dates.DateFormatter('%Y-%m')
+        xformat = DateFormatter('%Y-%m')
         ax.xaxis.set_major_formatter(xformat)
 
     ax.tick_params(axis='x', labelsize=8)
@@ -128,23 +128,23 @@ def rainClock(dataframe, raincol='Precip', fname=None):
         raise ValueError('input `dataframe` must have a `%s` column' % raincol)
 
     rainfall = dataframe[raincol]
-    am_hours = np.arange(0, 12)
+    am_hours = numpy.arange(0, 12)
     am_hours[0] = 12
     rainhours = rainfall.index.hour
     rain_by_hour = []
-    for hr in np.arange(24):
+    for hr in numpy.arange(24):
         selector = (rainhours == hr)
         total_depth = rainfall[selector].sum()
         num_obervations = rainfall[selector].count()
         rain_by_hour.append(total_depth / num_obervations)
 
-    bar_width = 2 * np.pi / 12 * 0.8
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(7, 3),
+    bar_width = 2 * numpy.pi / 12 * 0.8
+    fig, (ax1, ax2) = pyplot.subplots(nrows=1, ncols=2, figsize=(7, 3),
                                    subplot_kw=dict(polar=True))
-    theta = np.arange(0.0, 2 * np.pi, 2 * np.pi / 12)
-    ax1.bar(theta + 2 * np.pi / 12 * 0.1, rain_by_hour[:12],
+    theta = numpy.arange(0.0, 2 * numpy.pi, 2 * numpy.pi / 12)
+    ax1.bar(theta + 2 * numpy.pi / 12 * 0.1, rain_by_hour[:12],
             bar_width, color='DodgerBlue', linewidth=0.5)
-    ax2.bar(theta + 2 * np.pi / 12 * 0.1, rain_by_hour[12:],
+    ax2.bar(theta + 2 * numpy.pi / 12 * 0.1, rain_by_hour[12:],
             bar_width, color='Crimson', linewidth=0.5)
     ax1.set_title('AM Hours')
     ax2.set_title('PM Hours')
@@ -170,7 +170,7 @@ def _speed_labels(bins, units=None):
     for left, right in zip(bins[:-1], bins[1:]):
         if left == bins[0]:
             labels.append('calm'.format(right))
-        elif np.isinf(right):
+        elif numpy.isinf(right):
             labels.append('>{} {}'.format(left, units))
         else:
             labels.append('{} - {} {}'.format(left, right, units))
@@ -180,8 +180,8 @@ def _speed_labels(bins, units=None):
 
 def _dir_degrees_to_radins(directions):
     N = directions.shape[0]
-    barDir = (directions * np.pi / 180.) - (np.pi / N)
-    barWidth = 2 * np.pi / N
+    barDir = (directions * numpy.pi / 180.) - (numpy.pi / N)
+    barWidth = 2 * numpy.pi / N
     return barDir, barWidth
 
 
@@ -193,12 +193,12 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     calm_count = dataframe[dataframe[speedcol] <= calmspeed].shape[0]
 
     if spd_bins is None:
-        spd_bins = [-1, 0, 5, 10, 20, 30, np.inf]
+        spd_bins = [-1, 0, 5, 10, 20, 30, numpy.inf]
 
     if spd_labels is None:
         spd_labels = _speed_labels(spd_bins, units=spd_units)
 
-    dir_bins = np.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
+    dir_bins = numpy.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
     dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
     raw_rose = (
@@ -239,12 +239,12 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
 
 
 def _plot_windrose(rose, ax=None, palette=None, show_calm=True, show_legend=True, **other_opts):
-    dir_degrees = np.array(rose.index.tolist())
+    dir_degrees = numpy.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
     palette = palette or DEEPCOLORS
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        fig, ax = pyplot.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
     else:
         fig = ax.figure
 
@@ -306,6 +306,6 @@ def _pct_fmt(x, pos=0):
 
 def _convert_dir_to_left_radian(directions):
     N = directions.shape[0]
-    barDir = (directions * np.pi / 180.) - (np.pi / N)
-    barWidth = [2 * np.pi / N] * N
+    barDir = (directions * numpy.pi / 180.) - (numpy.pi / N)
+    barWidth = [2 * numpy.pi / N] * N
     return barDir, barWidth

@@ -1,19 +1,12 @@
 # standard library models
-from __future__ import division, print_function
 import datetime
-import sys
-import os
 
-# third-party modules
 import numpy
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-import matplotlib.dates as mdates
-import matplotlib.gridspec as gridspec
-import matplotlib.colorbar as colorbar
-
+from matplotlib import colors
+from matplotlib import ticker
+from matplotlib import gridspec
+from matplotlib import colorbar
+from matplotlib import pyplot
 import pandas
 
 
@@ -44,10 +37,10 @@ def get_percent_available(grid, coopid):
     return pandas.DataFrame(pct_avail)
 
 
-@mticker.FuncFormatter
+@ticker.FuncFormatter
 def xdates(x, pos):
     day = x / 24.
-    date = mdates.num2date(1 + day)
+    date = dates.num2date(1 + day)
     date2 = datetime.datetime(1900, date.month, date.day)
     return date2.strftime('%m-%d')
 
@@ -89,7 +82,7 @@ def setup_station_data(dataframe, coopid, datecol='DATE',
     origin_date = datetime.datetime(baseyear, 10, 1)
     start_date = station_data.index[0] - datetime.timedelta(hours=1)
     end_date = station_data.index[-1] + datetime.timedelta(hours=1)
-    future_date = datetime.datetime(2015, 12, 31, 23)
+    future_date = datetime.datetime(datetime.datetime.today().year, 12, 31, 23)
 
     # pad the start of the data
     station_data.loc[origin_date, 'flag'] = '['
@@ -244,7 +237,7 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
     if not figsize:
         figsize = (6.5, 7.25)
 
-    fig = plt.figure(figsize=figsize)
+    fig = pyplot.figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[20, 1])
     ax = fig.add_subplot(gs[0])
     cax = fig.add_subplot(gs[1])
@@ -255,10 +248,10 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
         (0.32927729263408284, 0.47628455565843819, 0.18371555497583281),
         (0.086056336005814082, 0.23824692404211989, 0.30561236308077167)
     ]
-    cmap = mpl.colors.ListedColormap(mycolors)
+    cmap = colors.ListedColormap(mycolors)
     cmap.set_bad(mycolors[-1])
     bounds = [-0.5, 0.5, 1.5, 2.5, 3.5]
-    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    norm = colors.BoundaryNorm(bounds, cmap.N)
 
     img = ax.pcolorfast(grid, cmap=cmap, norm=norm)
     ax.set_aspect(grid.shape[1] / grid.shape[0])
@@ -305,12 +298,12 @@ def dataAvailabilityHeatmap(data, figsize=None):
         (0.074817382149836603, 0.37325644738533914, 0.65520955534542313),
         (0.031372550874948502, 0.28161477242030347, 0.55826222487524446)
     ]
-    cmap = mpl.colors.ListedColormap(mycolors)
+    cmap = colors.ListedColormap(mycolors)
     cmap.set_under('1.0')
     cmap.set_bad('1.0')
-    norm = mpl.colors.BoundaryNorm(bounds, cmap.N, clip=True)
+    norm = colors.BoundaryNorm(bounds, cmap.N, clip=True)
 
-    fig = plt.figure(figsize=figsize)
+    fig = pyplot.figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[1, 20])
 
     mdata = numpy.ma.masked_less(data.values, 1)

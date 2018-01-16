@@ -4,17 +4,13 @@ import os
 import sys
 import pdb
 import codecs
-from contextlib import closing
-from io import TextIOWrapper
 from pkg_resources import resource_string
 from urllib import request, error, parse
 from http import cookiejar
 import logging
 
 # math stuff
-import numpy as np
-import matplotlib
-import matplotlib.dates as mdates
+import numpy
 import pandas
 
 # metar stuff
@@ -494,8 +490,8 @@ class WeatherStation(object):
                         press = _append_val(obs.press, press)
                         cover.append(_process_sky_cover(obs))
 
-                rains = np.array(rains)
-                dates = np.array(dates)
+                rains = numpy.array(rains)
+                dates = numpy.array(dates)
 
                 if src == 'asos':
                     reset_time = _determine_reset_time(dates, rains)
@@ -769,7 +765,7 @@ def _determine_reset_time(date, precip):
     determines the precip gauge reset time for a month's
     worth of ASOS data.
     '''
-    minutes = np.zeros(12)
+    minutes = numpy.zeros(12)
     if len(date) != len(precip):
         raise ValueError("date and precip must be same length")
     else:
@@ -778,7 +774,7 @@ def _determine_reset_time(date, precip):
                 minuteIndex = int(date[n].minute / 5)
                 minutes[minuteIndex] += 1
 
-        resetTime, = np.where(minutes == minutes.max())
+        resetTime, = numpy.where(minutes == minutes.max())
         return resetTime[0] * 5
 
 
@@ -788,7 +784,7 @@ def _process_precip(dateval, p1, reset_time):
     dt = list of datetime objects
     RT = point in the hour when the tip counter resets
     '''
-    p2 = np.zeros(len(p1))
+    p2 = numpy.zeros(len(p1))
     p2[0] = p1[0]
     for n in range(1, len(p1)):
 
@@ -820,7 +816,7 @@ def _process_sky_cover(obs):
         coverlist.append(coverval)
 
     if len(coverlist) > 0:
-        cover = np.max(coverlist)
+        cover = numpy.max(coverlist)
     else:
         cover = 'NA'
 

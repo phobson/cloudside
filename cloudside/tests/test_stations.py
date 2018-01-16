@@ -1,8 +1,7 @@
-import shutil
-import tempfile
 from datetime import datetime
 import os
 from pkg_resources import resource_filename
+import tempfile
 
 import numpy
 import pandas

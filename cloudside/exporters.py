@@ -1,4 +1,5 @@
 from functools import partial
+from datetime import datetime
 
 import pandas
 
@@ -220,7 +221,7 @@ def _parse_obs(obs, units='HI'):
 def _write_obs(rowheader, year, month, day, obs):
     hour, minute, precip, flag = obs
     if hour < 24 and precip is not None:
-        date = datetime.datetime(year, month, day, hour, minute)
+        date = datetime(year, month, day, hour, minute)
         rowstring = ','.join([
             rowheader,
             date.strftime('%Y-%m-%d %H:%M'),
