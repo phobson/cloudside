@@ -1,9 +1,6 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
-import matplotlib.dates as dates
+from functools import partial
+
 import pandas
-import datetime
 
 from .viz import _resampler
 
@@ -250,10 +247,7 @@ def _obs_from_row(row):
     observations.extend(values)
     parsedObs = [_parse_obs(list(obs), units=units) for obs in observations]
 
-    rowheader = ','.join([
-        state_coopid, recordtype, element, units
-    ])
+    rowheader = ','.join([state_coopid, recordtype, element, units])
 
-    rows = [_write_obs(rowheader, year, month, day, obs) for obs in parsedObs]
-
-    return [r for r in filter(lambda r: r is not None, rows)]
+    rows = map(partial(_write_obs, rowheader, year, month, day), parsedObs)
+    return list(filter(lambda r: r is not None, rows))
