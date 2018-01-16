@@ -188,13 +188,9 @@ def NCDCtoCSV(ncdc, csv):
 
     """
 
-    csvrows = []
-    with open("input/45114_LAX.NCD", 'r') as fin:
+    with open(ncdc, 'r') as fin, open(csv, 'w') as fout:
         for row in fin:
-            csvrows.extend(_obs_from_row(row))
-
-    with open("output/045114_LAX.csv", 'w') as fout:
-        fout.writelines(csvrows)
+            fout.write(_obs_from_row(row))
 
 
 def _pop_many(mylist, N, side='left'):

@@ -97,8 +97,6 @@ class MetarParser(Metar.Metar):
         else:
             self._utcdelta = datetime.datetime.now() - self._now
 
-        logging.basicConfig(filename=errorfile, filemode='a', level=logging.WARNING)
-
         self._month = month
         self._year = year
 

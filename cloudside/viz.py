@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import matplotlib.dates as dates
 import pandas
-import seaborn
+
 
 __all__ = [
     'hyetograph',
@@ -11,6 +11,15 @@ __all__ = [
     'windRose',
     'psychromograph',
     'temperaturePlot'
+]
+
+DEEPCOLORS = [
+    (0.29803921568627451, 0.44705882352941179, 0.69019607843137254),
+    (0.33333333333333331, 0.6588235294117647, 0.40784313725490196),
+    (0.7686274509803922, 0.30588235294117649, 0.32156862745098042),
+    (0.50588235294117645, 0.44705882352941179, 0.69803921568627447),
+    (0.80000000000000004, 0.72549019607843135, 0.45490196078431372),
+    (0.39215686274509803, 0.70980392156862748, 0.80392156862745101)
 ]
 
 
@@ -229,11 +238,10 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     return rose_template.add(raw_rose, fill_value=0)
 
 
-def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
+def _plot_windrose(rose, ax=None, palette=None, show_calm=True, show_legend=True, **other_opts):
     dir_degrees = np.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
-
-    palette = seaborn.color_palette(palette=palette, n_colors=rose.shape[1])
+    palette = palette or DEEPCOLORS
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
@@ -245,7 +253,7 @@ def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
     ax.yaxis.set_major_formatter(FuncFormatter(_pct_fmt))
 
     for n, (c1, c2) in enumerate(zip(rose.columns[:-1], rose.columns[1:])):
-        if n == 0:
+        if n == 0 and show_calm:
             # first column only
             ax.bar(dir_rads, rose[c1].values,
                    width=dir_width,
@@ -277,17 +285,19 @@ def _plot_windrose(rose, ax=None, palette=None, show_legend=True, **other_opts):
     return fig
 
 
-def windRose(dataframe, speedcol='WindSpd', dircol='WindDir',
+def windRose(dataframe, ax=None, speedcol='WindSpd', dircol='WindDir',
              spd_bins=None, spd_labels=None, spd_units=None,
-             calmspeed=0.1, bin_width=15, ax=None,
-             palette='Blues', show_legend=True, **bar_opts):
+             calmspeed=0.1, bin_width=15, palette=None,
+             show_legend=True, show_calm=True, **bar_opts):
 
     rose = _compute_windrose(dataframe, speedcol=speedcol, dircol=dircol,
                              spd_bins=spd_bins, spd_labels=spd_labels,
                              spd_units=spd_units, calmspeed=calmspeed,
                              bin_width=bin_width)
 
-    return _plot_windrose(rose, ax=ax, palette=palette, show_legend=show_legend, **bar_opts)
+    fig = _plot_windrose(rose, ax=ax, palette=palette, show_legend=show_legend,
+                         show_calm=show_calm, **bar_opts)
+    return fig, rose
 
 
 def _pct_fmt(x, pos=0):

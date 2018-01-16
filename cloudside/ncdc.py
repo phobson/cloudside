@@ -17,6 +17,10 @@ import matplotlib.colorbar as colorbar
 import pandas
 
 
+def date_parser(x):
+    return datetime.datetime.strptime(x, '%Y%m%d %H:%M')
+
+
 def remove_bad_rain_values(df, raincol='hpcp', threshold=500):
     """ Filters invalid rainfall values and returns a new series.
 
@@ -66,7 +70,7 @@ def set_status(dataframe, opener, closer, flagval, flagcol='flag',
     return df
 
 
-def setup_station_data(dataframe, coopid, dumpcsv=False, datecol='DATE',
+def setup_station_data(dataframe, coopid, datecol='DATE',
                        stationcol='STATION', stanamecol='STATION_NAME',
                        precipcol='HPCP', qualcol='Measurement Flag',
                        baseyear=1947):
@@ -99,9 +103,6 @@ def setup_station_data(dataframe, coopid, dumpcsv=False, datecol='DATE',
     station_data.sort_index(inplace=True)
 
     cooptxt = coopid.replace(':', '')
-
-    if dumpcsv:
-        station_data.to_csv('{}.csv'.format(cooptxt))
 
     # generate the full index (every hour, ever day)
     fulldates = pandas.DatetimeIndex(freq=pandas.offsets.Hour(1),
@@ -207,6 +208,21 @@ def summarizeStorms(stormdata, stormcol='storm', units='in',
 def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
                           figsize=None):
 
+    _avail = (
+        stationdata.groupby(by=['status'])
+            ['flag']
+            .count()
+            .reindex(range(4))
+            .fillna(0)
+    )
+    _avail_pct = 100 * _avail / _avail.sum()
+    _statuses = ['Good', 'Accumulated', 'Deleted', 'Missing']
+
+    status_labels = [
+        '{:s} ({:0.2f}%)'.format(status, pct)
+        for status, pct in zip(_statuses, _avail_pct.values)
+    ]
+
     cooptxt = coopid.replace(':', '')
 
     # reset in the index and compute year and month-day-hour representations of the date
@@ -259,7 +275,7 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
 
     cbar = colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='horizontal')
     cbar.set_ticks([0, 1, 2, 3])
-    cbar.set_ticklabels(['Good', 'Accumulated', 'Deleted', 'Missing'])
+    cbar.set_ticklabels(status_labels)
     cbar.ax.set_title('Precipitation Data Status')
 
     ax.set_title('{1}\n({0})'.format(coopid, stationname), fontsize=10)
@@ -329,12 +345,8 @@ def dataAvailabilityHeatmap(data, figsize=None):
 
 
 if __name__ == '__main__':
-
-    def _parser(x):
-        return datetime.datetime.strptime(x, '%Y%m%d %H:%M')
-
     data_1hr = pandas.read_csv(filepath, sep=sep, na_values=['unknown', 99999],
-                               parse_dates=['DATE'], date_parser=_parser)
+                               parse_dates=['DATE'], date_parser=date_parser)
 
     COOPIDS = pandas.unique(data_1hr['STATION'])
     COOPIDS.sort()

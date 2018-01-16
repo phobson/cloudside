@@ -27,7 +27,7 @@ before_install:
   - conda install nomkl
 
 install:
-  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION seaborn pandas requests
+  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION pandas requests
   - source activate testenv
   - conda install --channel=conda-forge --yes pytest coverage pytest-mpl pytest-cov pytest-pep8
   - pip install git+https://github.com/tomp/python-metar.git

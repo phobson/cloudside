@@ -20,7 +20,6 @@ requirements:
     - setuptools
     - metar
     - matplotlib
-    - seaborn
     - pandas
     - requests
 
@@ -29,7 +28,6 @@ requirements:
     - python
     - metar
     - matplotlib
-    - seaborn
     - pandas
     - requests
 
