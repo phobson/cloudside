@@ -1,13 +1,9 @@
-import os
-import sys
 from pkg_resources import resource_filename
 from io import StringIO
 from textwrap import dedent
 
-import datetime as dt
+from matplotlib import pyplot
 import pandas
-import matplotlib
-import matplotlib.pyplot as plt
 
 import pytest
 import numpy.testing as nptest
@@ -78,7 +74,7 @@ def test_rainclock(test_data):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_windrose(test_data):
-    fig, (ax1, ax2) = plt.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
     _ = viz.windRose(test_data.assign(WindSpd=test_data['WindSpd'] * 1.15),
                      spd_units='mph', ax=ax1)
     _ = viz.windRose(test_data, spd_units='kt', ax=ax2)
@@ -88,7 +84,7 @@ def test_windrose(test_data):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_windrose_short(short_data):
-    fig, (ax1, ax2) = plt.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
     _ = viz.windRose(short_data.assign(WindSpd=short_data['WindSpd'] * 1.15),
                      spd_units='mph', ax=ax1)
     _ = viz.windRose(short_data, spd_units='kt', ax=ax2)
@@ -172,7 +168,7 @@ def test__compute_windorose_short_record(short_data, rose_index):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_hyetograph(test_data, frequencies):
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
+    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
     for freq, ax in zip(frequencies, axes.flat):
         fig = viz.hyetograph(test_data, freq=freq, ax=ax)
     fig.tight_layout()
@@ -181,7 +177,7 @@ def test_hyetograph(test_data, frequencies):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_psychromograph(test_data, frequencies):
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
+    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
     for freq, ax in zip(frequencies, axes.flat):
         fig = viz.psychromograph(test_data, freq=freq, ax=ax)
     fig.tight_layout()
@@ -190,7 +186,7 @@ def test_psychromograph(test_data, frequencies):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_temperaturePlot(test_data, frequencies):
-    fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
+    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
     for freq, ax in zip(frequencies, axes.flat):
         fig = viz.temperaturePlot(test_data, freq=freq, ax=ax)
     fig.tight_layout()
