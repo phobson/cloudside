@@ -35,11 +35,10 @@ install:
   - pip install .
 
 script:
-  - python check_cloudside.py ${ARGS}
+  - coverage run --source cloudside check_cloudside.py ${ARGS}
 
 after_success:
   - if [ ${COVERAGE} = true ]; then
-      coverage run --source cloudside check_cloudside.py;
       coverage report -m;
       coveralls;
     fi
