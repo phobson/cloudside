@@ -66,18 +66,18 @@ def rose_index():
 
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
-def test_rainclock(test_data):
-    fig = viz.rainClock(test_data)
+def test_rain_clock(test_data):
+    fig = viz.rain_clock(test_data, raincol='Precip')
     fig.tight_layout()
     return fig
 
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
-def test_windrose(test_data):
+def test_rose(test_data):
     fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
-    _ = viz.windRose(test_data.assign(WindSpd=test_data['WindSpd'] * 1.15),
-                     spd_units='mph', ax=ax1)
-    _ = viz.windRose(test_data, spd_units='kt', ax=ax2)
+    _ = viz.rose(test_data.assign(WindSpd=test_data['WindSpd'] * 1.15),
+                 'WindSpd', 'WindDir', spd_units='mph', ax=ax1)
+    _ = viz.rose(test_data, 'WindSpd', 'WindDir', spd_units='kt', ax=ax2)
     fig.tight_layout()
     return fig
 
@@ -92,7 +92,17 @@ def test_windrose_short(short_data):
     return fig
 
 
-def test__compute_windrose(test_data, rose_index):
+@pytest.mark.mpl_image_compare(**IMG_OPTS)
+def test_rose_short(short_data):
+    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    _ = viz.rose(short_data.assign(WindSpd=short_data['WindSpd'] * 1.15),
+                 'WindSpd', 'WindDir', spd_units='mph', ax=ax1)
+    _ = viz.rose(short_data, 'WindSpd', 'WindDir', spd_units='kt', ax=ax2)
+    fig.tight_layout()
+    return fig
+
+
+def test__compute_rose(test_data, rose_index):
     expected = pandas.read_csv(StringIO(dedent("""\
         Dir_bins,calm,0 - 5 ,5 - 10 ,10 - 20 ,20 - 30 ,">30 "
         0.0,0.0032817,0.0,0.0,0.0,0.0,0.0
@@ -121,7 +131,7 @@ def test__compute_windrose(test_data, rose_index):
         345.0,0.0032817,0.0105655,0.0229319,0.0136871,0.0,0.0
     """)), index_col=['Dir_bins']).rename_axis('Spd_bins', axis='columns')
 
-    rose = viz._compute_windrose(test_data)
+    rose = viz._compute_rose(test_data, 'WindSpd', 'WindDir')
     rose.columns = rose.columns.astype(str)
 
     expected.index = rose_index
@@ -129,7 +139,7 @@ def test__compute_windrose(test_data, rose_index):
     pdtest.assert_frame_equal(rose, expected, check_less_precise=True)
 
 
-def test__compute_windorose_short_record(short_data, rose_index):
+def test__compute_rose_short_record(short_data, rose_index):
     expected = pandas.read_csv(StringIO(dedent("""\
         Dir_bins,calm,0 - 5 ,5 - 10 ,10 - 20 ,20 - 30 ,">30 "
         0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -158,7 +168,7 @@ def test__compute_windorose_short_record(short_data, rose_index):
         345.0,0.0,0.0,0.0,0.0,0.0,0.0
     """)), index_col=['Dir_bins']).rename_axis('Spd_bins', axis='columns')
 
-    rose = viz._compute_windrose(short_data)
+    rose = viz._compute_rose(short_data, 'WindSpd', 'WindDir')
     rose.columns = rose.columns.astype(str)
 
     expected.index = rose_index
@@ -185,9 +195,9 @@ def test_psychromograph(test_data, frequencies):
 
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
-def test_temperaturePlot(test_data, frequencies):
+def test_temperature(test_data, frequencies):
     fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
     for freq, ax in zip(frequencies, axes.flat):
-        fig = viz.temperaturePlot(test_data, freq=freq, ax=ax)
+        fig = viz.temperature(test_data, freq=freq, ax=ax)
     fig.tight_layout()
     return fig
