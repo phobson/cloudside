@@ -65,7 +65,7 @@ def _resampler(dataframe, col, freq, how='sum', fillna=None):
 
 
 def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
-             ax=None, downward=False, fname=None, fillna=None):
+             ax=None, downward=False, fillna=None):
 
     if not hasattr(dataframe, col):
         raise ValueError('input `dataframe` must have a `%s` column' % col)
@@ -91,39 +91,123 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
     if downward:
         ax.invert_yaxis()
 
-    if fname is not None:
-        fig.tight_layout()
-        fig.savefig(fname, dpi=300, bbox_inches='tight')
-
     return fig
 
 
-def hyetograph(dataframe, freq='hourly', ax=None, downward=True, col='Precip', fname=None):
+def hyetograph(dataframe, col='Precip', freq='hourly', ax=None,
+               downward=True):
+    """ Plot showing rainfall depth over time.
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        Must have a datetime index.
+    col : string, optional (default = 'precip')
+        The name of the column in *dataframe* that contains the
+        rainall series.
+    freq : str, optional (default = 'hourly')
+        The frequency to which the rainfall depth should be
+        accumulated.
+    ax : matplotlib.Axes object, optional
+        The Axes on which the plot will be placed. If not provided,
+        a new Figure and Axes will be created.
+    downward : bool, optional (default = True)
+        Inverts the y-axis to show the rainfall depths "falling"
+        from the top.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
     ylabel = '%s Rainfall Depth (in)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq, fillna=0,
-                   how='sum', ax=ax, downward=downward, fname=fname)
+                   how='sum', ax=ax, downward=downward)
     return fig
 
 
-def psychromograph(dataframe, freq='hourly', ax=None, col='AtmPress', fname=None):
+def psychromograph(dataframe, col='AtmPress', freq='hourly', how='mean',
+                   ax=None):
+    """ Plot showing barometric pressure over time.
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        Must have a datetime index.
+    col : string, optional (default = 'precip')
+        The name of the column in *dataframe* that contains the
+        barometric pressure series.
+    freq : str, optional (default = 'hourly')
+        The frequency to which the barometrix pressure should be
+        aggregated.
+    how : {'mean', 'max', 'min'}, optional (default = 'mean')
+        Specifies how the data will be aggregted.
+    ax : matplotlib.Axes object, optional
+        The Axes on which the plot will be placed. If not provided,
+        a new Figure and Axes will be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
     ylabel = '%s Barometric Pressure (in Hg)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq,
-                   how='mean', ax=ax, fname=fname)
+                   how=how, ax=ax)
     return fig
 
 
-def temperaturePlot(dataframe, freq='hourly', ax=None, col='Temp', fname=None):
+def temperature(dataframe, col='Temp', freq='hourly', how='mean',
+                ax=None):
+    """ Plot showing temperature over time.
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        Must have a datetime index.
+    col : string, optional (default = 'precip')
+        The name of the column in *dataframe* that contains the
+        temperature series.
+    freq : str, optional (default = 'hourly')
+        The frequency to which the rainfall depth should be
+        accumulated.
+    how : {'mean', 'max', 'min'}, optional (default = 'mean')
+        Specifies how the data will be aggregted.
+    ax : matplotlib.Axes object, optional
+        The Axes on which the plot will be placed. If not provided,
+        a new Figure and Axes will be created.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
     ylabel = u'%s Temperature (\xB0C)' % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq,
-                   how='mean', ax=ax, fname=fname)
+                   how=how, ax=ax)
     return fig
 
 
-def rainClock(dataframe, raincol='Precip', fname=None):
-    '''
-    Mathematically dubious representation of the likelihood of rain at
+def rain_clock(dataframe, raincol='precip'):
+    """ Mathematically dubious representation of the likelihood of rain at
     at any hour given that will rain.
-    '''
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+    raincol : string, optional (default = 'precip')
+        The name of the column in *dataframe* that contains the
+        rainfall series.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+
+    """
+
     if not hasattr(dataframe, raincol):
         raise ValueError('input `dataframe` must have a `%s` column' % raincol)
 
@@ -155,10 +239,6 @@ def rainClock(dataframe, raincol='Precip', fname=None):
         ax.set_xticklabels(am_hours)
         ax.set_yticklabels([])
 
-    if fname is not None:
-        fig.tight_layout()
-        fig.savefig(fname, dpi=300, bbox_inches='tight')
-
     return fig
 
 
@@ -185,12 +265,13 @@ def _dir_degrees_to_radins(directions):
     return barDir, barWidth
 
 
-def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
-                      spd_bins=None, spd_labels=None, spd_units=None,
-                      calmspeed=0.1, bin_width=15):
+def _compute_rose(dataframe, magcol, dircol,
+                  spd_bins=None, spd_labels=None, spd_units=None,
+                  calmspeed=0.1, dir_bins=None, bin_width=15,
+                  dir_labels=None):
 
     total_count = dataframe.shape[0]
-    calm_count = dataframe[dataframe[speedcol] <= calmspeed].shape[0]
+    calm_count = dataframe[dataframe[magcol] <= calmspeed].shape[0]
 
     if spd_bins is None:
         spd_bins = [-1, 0, 5, 10, 20, 30, numpy.inf]
@@ -198,12 +279,14 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     if spd_labels is None:
         spd_labels = _speed_labels(spd_bins, units=spd_units)
 
-    dir_bins = numpy.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
-    dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
+    if dir_bins is None:
+        dir_bins = numpy.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
+    if dir_labels is None:
+        dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
     raw_rose = (
         dataframe
-            .assign(Spd_bins=pandas.cut(dataframe[speedcol], bins=spd_bins, labels=spd_labels, right=True))
+            .assign(Spd_bins=pandas.cut(dataframe[magcol], bins=spd_bins, labels=spd_labels, right=True))
             .assign(Dir_bins=pandas.cut(dataframe[dircol], bins=dir_bins, labels=dir_labels, right=False))
             .replace({'Dir_bins': {360: 0}})
             .groupby(by=['Spd_bins', 'Dir_bins'])
@@ -238,7 +321,8 @@ def _compute_windrose(dataframe, speedcol='WindSpd', dircol='WindDir',
     return rose_template.add(raw_rose, fill_value=0)
 
 
-def _plot_windrose(rose, ax=None, palette=None, show_calm=True, show_legend=True, **other_opts):
+def _draw_rose(rose, ax=None, palette=None, show_calm=True,
+               show_legend=True, **other_opts):
     dir_degrees = numpy.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
     palette = palette or DEEPCOLORS
@@ -285,19 +369,88 @@ def _plot_windrose(rose, ax=None, palette=None, show_calm=True, show_legend=True
     return fig
 
 
-def windRose(dataframe, ax=None, speedcol='WindSpd', dircol='WindDir',
-             spd_bins=None, spd_labels=None, spd_units=None,
-             calmspeed=0.1, bin_width=15, palette=None,
-             show_legend=True, show_calm=True, **bar_opts):
+def rose(dataframe, magcol, dircol,
+         spd_bins=None, spd_labels=None, spd_units=None,
+         calmspeed=0.1, dir_bins=None, bin_width=15,
+         dir_labels=None, palette=None, show_legend=True,
+         show_calm=True, ax=None, **bar_opts):
+    """ Draw a rose diagram
 
-    rose = _compute_windrose(dataframe, speedcol=speedcol, dircol=dircol,
-                             spd_bins=spd_bins, spd_labels=spd_labels,
-                             spd_units=spd_units, calmspeed=calmspeed,
-                             bin_width=bin_width)
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+    magcol, dircol : str, optional
+        The names of the columns that contain the magnitude and direction,
+        respectively.
+    spd_bins : sequence of floats, optional
+        The bin edges to be used in catgorizing the wind speeds.
+    spd_labels : sequence of strings, optional
+        The labels for each speed category. Length of this sequence should
+        be one less than the length of *spd_bins*.
+    spd_units : str, optional
+        The units of measure of the wind speed.
+    calmspeed : float (default = 0.1)
+        The wind speed below which conditions are considered "calm"
+    dir_bins : sequence of floats, optional
+        The bin edges to be used in catgorizing the wind directions.
+    dir_labels : sequence of strings, optional
+        The labels for each direction category. Length of this sequence should
+        be one less than the length of *dir_bins*.
+    ax : matplotlib.Axes object, optional
+        The Axes on which the plot will be placed. If not provided,
+        a new Figure and Axes will be created.
+    palette : sequence of matplotlin colors, optional
+        The color palette for the polar bars. Length of this sequence should be
+        the same as *dir_labels*.
+    show_legend : bool, optional, (default = True)
+        Toggles the placement of a legend on the figure. If the default
+        placement interferes with the plot, set to False and add the legend
+        manually (see example).
+    show_calm : bool, optional (default = True)
+        Toggles the inclusion of the "calm" circle in the plot.
+    ax : matplotlib.Axes object, optional
+        The Axes on which the plot will be placed. If not provided,
+        a new Figure and Axes will be created.
 
-    fig = _plot_windrose(rose, ax=ax, palette=palette, show_legend=show_legend,
-                         show_calm=show_calm, **bar_opts)
+    Other Parameters
+    ----------------
+    All other keyword arguments passed will be sent directly to the plotting
+    method that creates the bars (``matplotlib.Axes.bar``).
+
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    rose : pandas.DataFrame
+        Dataframe containing the relative frequencies within each
+        direction and speed bin.
+
+    Example
+    -------
+    >>> from matplotlib import pyplot
+    >>> import cloudside
+    >>> data = cloudside.load_example_data()
+    >>> fig, ax = pyplot.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    >>> # use show_legend = False since the legend might overlap tick labels
+    >>> fig, rose = cloudsize.viz.windRose(data, ax=ax, show_legend=False)
+    >>> # add legend ourselves in a position further away from the Axes
+    >>> ax.legend(loc='lower right', bbox_to_anchor=(1.5. 0.25))
+
+    """
+
+    rose = _compute_rose(dataframe, magcol=magcol, dircol=dircol,
+                         spd_bins=spd_bins, spd_labels=spd_labels,
+                         spd_units=spd_units, calmspeed=calmspeed,
+                         bin_width=bin_width)
+
+    fig = _draw_rose(rose, ax=ax, palette=palette, show_legend=show_legend,
+                     show_calm=show_calm, **bar_opts)
     return fig, rose
+
+
+@numpy.deprecate
+def windRose(dataframe, spdcol='WindSpd', dircol='WindDir', **kwargs):
+    return rose(dataframe, spdcol, dircol, **kwargs)
 
 
 def _pct_fmt(x, pos=0):
