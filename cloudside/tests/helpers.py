@@ -1,3 +1,4 @@
+from pkg_resources import resource_filename
 from contextlib import contextmanager
 
 import pytest
@@ -15,3 +16,7 @@ def raises(error):
             except Exception as e:
                 raise e
         return not_raises()
+
+
+def get_test_file(filename):
+    return resource_filename('cloudside.tests.data', filename)

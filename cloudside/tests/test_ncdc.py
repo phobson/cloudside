@@ -6,11 +6,12 @@ import pytest
 import pandas.util.testing as pdtest
 
 from cloudside import ncdc
+from .helpers import get_test_file
 
 
 @pytest.fixture
 def sample_data():
-    fname = resource_filename('clouside.tests.data', 'sample_ncdc_data.csv')
+    fname = get_test_file('sample_ncdc_data.csv')
     return pandas.read_csv(fname, parse_dates=['date'])
 
 
