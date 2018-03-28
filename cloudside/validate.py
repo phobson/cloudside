@@ -50,3 +50,10 @@ def file_status(filename):
         status = 'not there'
 
     return status
+
+
+def progress_bar(pbar):
+    if not pbar:
+        def pbar(x):
+            return x
+    return pbar

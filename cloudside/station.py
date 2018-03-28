@@ -18,11 +18,8 @@ from metar import Metar, Datatypes
 
 from . import validate
 
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(x):
-        return x
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -32,6 +29,7 @@ __all__ = [
     'getWundergroundData',
     'getWunderground_NonAirportData',
     'WeatherStation',
+    'logger'
 ]
 
 
@@ -42,8 +40,7 @@ def _report_match(handler, match):
 
 
 class MetarParser(Metar.Metar):
-    def __init__(self, metarcode, month=None, year=None, utcdelta=None,
-                 errorfile=None):
+    def __init__(self, metarcode, month=None, year=None, utcdelta=None):
         """Parse raw METAR code."""
         self.code = metarcode              # original METAR code
         self.type = 'METAR'                # METAR (routine) or SPECI (special)
@@ -179,8 +176,8 @@ class WeatherStation(object):
     """
 
     def __init__(self, sta_id, city=None, state=None, country=None,
-                 lat=None, lon=None, max_attempts=10, show_progress=False,
-                 datadir=None, errorfile=None):
+                 lat=None, lon=None, max_attempts=10, progress_bar=None,
+                 datadir=None):
         self.sta_id = sta_id
         self.city = city
         self.state = state
@@ -190,10 +187,7 @@ class WeatherStation(object):
         self.lat = lat
         self.lon = lon
 
-        if show_progress:
-            self.tracker = tqdm
-        else:
-            self.tracker = lambda x: x
+        self.tracker = validate.progress_bar(progress_bar)
 
         if self.state:
             self.name = "%s, %s" % (self.city, self.state)
@@ -201,19 +195,10 @@ class WeatherStation(object):
             self.name = self.city
 
         self.datadir = datadir or os.path.join('data')
-        self._errorfile = errorfile
 
         self._wunderground = None
         self._wunder_nonairport = None
         self._asos = None
-
-    @property
-    def errorfile(self):
-        return self._errorfile
-
-    @errorfile.setter
-    def errorfile(self, value):
-        self._errorfile = value
 
     @property
     def max_attempts(self):
@@ -380,7 +365,6 @@ class WeatherStation(object):
         outname = self._make_data_file(timestamp, src, 'raw')
         status = 'not there'
 
-        logging.basicConfig(filename=self.errorfile, filemode='a', level=logging.INFO)
         if not os.path.exists(outname) or force_download:
             url = self._url_by_date(timestamp, src=src)
             if src.lower() == 'wunderground':
@@ -407,7 +391,7 @@ class WeatherStation(object):
                     successful = True
 
                 except Exception as e:
-                    logging.error('error parsing: %s\n' % (url,))
+                    logger.error('error parsing: %s\n' % (url,))
 
             if not successful:
                 os.remove(outname)
@@ -481,7 +465,7 @@ class WeatherStation(object):
                             metarstring = None
 
                     if metarstring is not None:
-                        obs = MetarParser(metarstring, errorfile=self.errorfile)
+                        obs = MetarParser(metarstring)
                         rains = _append_val(obs.precip_1hr, rains, fillNone=0.0)
                         temps = _append_val(obs.temp, temps)
                         dewpt = _append_val(obs.dewpt, dewpt)
@@ -589,12 +573,15 @@ class WeatherStation(object):
         # corrected data are appended to the bottom of the ASOS files by NCDC
         # QA people. So for any given date/time index, we want the *last* row
         # that appeared in the data file.
-        final_data = data.groupby(level=0).last()
+        if data is not None:
+            final_data = data.groupby(level=0).last()
 
-        if filename is not None:
-            compdir = self._find_dir(source, 'compile')
-            os.makedirs(compdir, exist_ok=True)
-            final_data.to_csv(os.path.join(compdir, filename))
+            if filename is not None:
+                compdir = self._find_dir(source, 'compile')
+                os.makedirs(compdir, exist_ok=True)
+                final_data.to_csv(os.path.join(compdir, filename))
+        else:
+            final_data = data
 
         return final_data
 
@@ -850,7 +837,6 @@ def getStationByID(sta_id):
 def _get_data(station, startdate, enddate, source, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
-        station.errorfile = '{}.log'.format(station.sta_id)
 
     return station._get_data(startdate, enddate, source, filename=filename)
 
