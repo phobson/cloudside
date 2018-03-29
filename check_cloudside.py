@@ -1,12 +1,11 @@
 import sys
 import matplotlib
-matplotlib.use('agg')
-
-from matplotlib import pyplot
-pyplot.style.use('classic')
+from matplotlib import style
 
 import cloudside
 
+matplotlib.use('agg')
+style.use('classic')
 
 status = cloudside.test(*sys.argv[1:])
 sys.exit(status)

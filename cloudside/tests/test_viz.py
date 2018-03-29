@@ -2,7 +2,7 @@ from pkg_resources import resource_filename
 from io import StringIO
 from textwrap import dedent
 
-from matplotlib import pyplot
+from matplotlib import figure
 import pandas
 
 import pytest
@@ -17,6 +17,22 @@ IMG_OPTS = dict(
     tolerance=21,
     baseline_dir='baseline_images/viz_tests'
 )
+
+
+def _make_polar_fig():
+    fig = figure.Figure(figsize=(12, 5))
+    ax1 = fig.add_subplot(1, 2, 1, polar=True)
+    ax2 = fig.add_subplot(1, 2, 2, polar=True)
+    return fig, ax1, ax2
+
+
+def _make_ts_fig():
+    fig = figure.Figure(figsize=(9, 9))
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax2 = fig.add_subplot(2, 2, 2, sharex=ax1)
+    ax3 = fig.add_subplot(2, 2, 3, sharex=ax1)
+    ax4 = fig.add_subplot(2, 2, 4, sharex=ax1)
+    return fig, [ax1, ax2, ax3, ax4]
 
 
 @pytest.fixture
@@ -74,7 +90,7 @@ def test_rain_clock(test_data):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_rose(test_data):
-    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    fig, ax1, ax2 = _make_polar_fig()
     _ = viz.rose(test_data.assign(WindSpd=test_data['WindSpd'] * 1.15),
                  'WindSpd', 'WindDir', spd_units='mph', ax=ax1)
     _ = viz.rose(test_data, 'WindSpd', 'WindDir', spd_units='kt', ax=ax2)
@@ -84,7 +100,7 @@ def test_rose(test_data):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_windrose_short(short_data):
-    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    fig, ax1, ax2 = _make_polar_fig()
     _ = viz.windRose(short_data.assign(WindSpd=short_data['WindSpd'] * 1.15),
                      spd_units='mph', ax=ax1)
     _ = viz.windRose(short_data, spd_units='kt', ax=ax2)
@@ -94,7 +110,7 @@ def test_windrose_short(short_data):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_rose_short(short_data):
-    fig, (ax1, ax2) = pyplot.subplots(figsize=(12, 5), ncols=2, subplot_kw=dict(polar=True))
+    fig, ax1, ax2 = _make_polar_fig()
     _ = viz.rose(short_data.assign(WindSpd=short_data['WindSpd'] * 1.15),
                  'WindSpd', 'WindDir', spd_units='mph', ax=ax1)
     _ = viz.rose(short_data, 'WindSpd', 'WindDir', spd_units='kt', ax=ax2)
@@ -178,8 +194,8 @@ def test__compute_rose_short_record(short_data, rose_index):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_hyetograph(test_data, frequencies):
-    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
-    for freq, ax in zip(frequencies, axes.flat):
+    fig, axes = _make_ts_fig()
+    for freq, ax in zip(frequencies, axes):
         fig = viz.hyetograph(test_data, freq=freq, ax=ax)
     fig.tight_layout()
     return fig
@@ -187,8 +203,8 @@ def test_hyetograph(test_data, frequencies):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_psychromograph(test_data, frequencies):
-    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
-    for freq, ax in zip(frequencies, axes.flat):
+    fig, axes = _make_ts_fig()
+    for freq, ax in zip(frequencies, axes):
         fig = viz.psychromograph(test_data, freq=freq, ax=ax)
     fig.tight_layout()
     return fig
@@ -196,8 +212,8 @@ def test_psychromograph(test_data, frequencies):
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_temperature(test_data, frequencies):
-    fig, axes = pyplot.subplots(ncols=2, nrows=2, figsize=(9, 9), sharex=True)
-    for freq, ax in zip(frequencies, axes.flat):
+    fig, axes = _make_ts_fig()
+    for freq, ax in zip(frequencies, axes):
         fig = viz.temperature(test_data, freq=freq, ax=ax)
     fig.tight_layout()
     return fig
