@@ -1,8 +1,10 @@
 import numpy
-from matplotlib import pyplot
+from matplotlib import figure
 from matplotlib.ticker import FuncFormatter
 from matplotlib.dates import DateFormatter
 import pandas
+
+from . import validate
 
 
 __all__ = [
@@ -70,10 +72,8 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
     if not hasattr(dataframe, col):
         raise ValueError('input `dataframe` must have a `%s` column' % col)
 
-    if ax is None:
-        fig, ax = pyplot.subplots()
-    else:
-        fig = ax.figure
+
+    fig, ax = validate.axes_object(ax)
 
     data, rule, plotkind = _resampler(dataframe, col, freq=freq, how=how)
 
@@ -223,8 +223,10 @@ def rain_clock(dataframe, raincol='precip'):
         rain_by_hour.append(total_depth / num_obervations)
 
     bar_width = 2 * numpy.pi / 12 * 0.8
-    fig, (ax1, ax2) = pyplot.subplots(nrows=1, ncols=2, figsize=(7, 3),
-                                   subplot_kw=dict(polar=True))
+
+    fig = figure.Figure(figsize=(7, 3))
+    ax1 = fig.add_subplot(1, 2, 1, polar=True)
+    ax2 = fig.add_subplot(1, 2, 2, polar=True)
     theta = numpy.arange(0.0, 2 * numpy.pi, 2 * numpy.pi / 12)
     ax1.bar(theta + 2 * numpy.pi / 12 * 0.1, rain_by_hour[:12],
             bar_width, color='DodgerBlue', linewidth=0.5)
@@ -321,16 +323,13 @@ def _compute_rose(dataframe, magcol, dircol,
     return rose_template.add(raw_rose, fill_value=0)
 
 
-def _draw_rose(rose, ax=None, palette=None, show_calm=True,
+def _draw_rose(rose, ax, palette=None, show_calm=True,
                show_legend=True, **other_opts):
     dir_degrees = numpy.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
     palette = palette or DEEPCOLORS
 
-    if ax is None:
-        fig, ax = pyplot.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    else:
-        fig = ax.figure
+    fig = ax.figure
 
     ax.set_theta_direction('clockwise')
     ax.set_theta_zero_location('N')

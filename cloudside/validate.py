@@ -1,6 +1,7 @@
-import os
+from matplotlib import figure
+from matplotlib import axes
 
-from matplotlib import pyplot
+import os
 
 
 def axes_object(ax):
@@ -8,11 +9,10 @@ def axes_object(ax):
     Both the figure and axes are returned (in that order).
 
     """
-
     if ax is None:
-        ax = pyplot.gca()
-        fig = ax.figure
-    elif isinstance(ax, pyplot.Axes):
+        fig = figure.Figure()
+        ax = fig.add_subplot(1, 1, 1)
+    elif isinstance(ax, axes.Axes):
         fig = ax.figure
     else:
         msg = "`ax` must be a matplotlib Axes instance or None"
