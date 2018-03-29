@@ -49,11 +49,9 @@ def fake_rain_data():
 def sta(request):
     with tempfile.TemporaryDirectory() as datadir:
 
-        errorfile = os.path.join(datadir, 'test{}.log'.format(request.param))
         yield station.WeatherStation(request.param, city='Portland', state='OR',
                                      country='Cascadia', lat=999, lon=999,
-                                     max_attempts=3, errorfile=errorfile,
-                                     datadir=os.path.join(datadir, 'testtree'))
+                                     max_attempts=3, datadir=os.path.join(datadir, 'testtree'))
 
 
 @pytest.fixture()
@@ -144,7 +142,7 @@ def test_getStationByID():
 
 @pytest.mark.parametrize('attribute', [
     'sta_id', 'city', 'state', 'country', 'position',
-    'name', 'wunderground', 'asos', 'errorfile'
+    'name', 'wunderground', 'asos',
 ])
 def test_WS_attributes(sta, attribute):
     assert hasattr(sta, attribute)
