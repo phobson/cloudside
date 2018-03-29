@@ -15,6 +15,7 @@
 .coverage
 .cache
 result_images
+.pytest_cache
 
 # Packages #
 ############

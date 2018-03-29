@@ -14,15 +14,12 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from cloudside import station
+from .helpers import get_test_file
 
 
 class FakeClass(object):
     def value(self):
         return 'item2'
-
-
-def get_test_file(filename):
-    return resource_filename('clouside.tests.data', filename)
 
 
 @pytest.fixture
