@@ -1,4 +1,5 @@
 numpy
 matplotlib
 pandas
+engarde
 metar >= 1.5

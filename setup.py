@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 PACKAGE_DATA = {
-    'cloudside.tests.data': ['*.txt', '*.png', '*.dat', '*.csv', 'testfile', 'testfile1', 'testfile2'],
+    'cloudside.tests.data': ['*.txt', '*.png', '*.dat', '*.csv',],
     'cloudside.tests.baseline_images.viz_tests': ['*.png'],
 }
 
@@ -30,8 +30,6 @@ if __name__ == '__main__':
             "Intended Audience :: Science/Research",
             "License :: OSI Approved :: BSD License",
             "Operating System :: OS Independent",
-            "Programming Language :: Python :: 3.4",
-            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Topic :: Scientific/Engineering :: Atmospheric Science",
             "Topic :: Scientific/Engineering :: Visualization",
