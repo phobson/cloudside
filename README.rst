@@ -44,7 +44,6 @@ Dependencies
 ------------
 * Python 3.5 or greater
 * recent versions of pandas, matplotlib
-* requests for hitting the NOAA web API
 * python-metar to actually parse the metar codes
 * Jupyter for running notebook-based examples (optional)
 * pytest for testing (optional)

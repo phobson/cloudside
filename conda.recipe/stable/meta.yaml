@@ -21,15 +21,12 @@ requirements:
     - metar
     - matplotlib
     - pandas
-    - requests
-
 
   run:
     - python
     - metar
     - matplotlib
     - pandas
-    - requests
 
 test:
   imports:

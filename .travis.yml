@@ -3,10 +3,6 @@ language: python
 matrix:
   fast_finish: true
   include:
-    - python: 3.5
-      env:
-        - COVERAGE=false
-        - ARGS="--mpl --verbose --pep8"
     - python: 3.6
       env:
         - COVERAGE=true
@@ -23,7 +19,7 @@ before_install:
   - conda install nomkl
 
 install:
-  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION pandas requests
+  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION pandas
   - source activate testenv
   - conda install --channel=conda-forge --yes pytest coverage pytest-mpl pytest-cov pytest-pep8
   - pip install git+https://github.com/tomp/python-metar.git

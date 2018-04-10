@@ -8,6 +8,9 @@ from pkg_resources import resource_string
 from urllib import request, error, parse
 from http import cookiejar
 import logging
+from ftplib import FTP
+from functools import lru_cache
+from pathlib import Path
 
 # math stuff
 import numpy
@@ -19,18 +22,10 @@ from metar import Metar, Datatypes
 from . import validate
 
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
-__all__ = [
-    'getAllStations',
-    'getStationByID',
-    'getASOSData',
-    'getWundergroundData',
-    'getWunderground_NonAirportData',
-    'WeatherStation',
-    'logger'
-]
+# __all__ = ['MetarParser', 'WeatherStation']
 
 
 def _report_match(handler, match):
@@ -39,10 +34,18 @@ def _report_match(handler, match):
         logging.debug('{} did not match'.format(handler.__name__))
 
 
+def value_or_not(obs_attr):
+    if obs_attr is None:
+        return numpy.nan
+    else:
+        return obs_attr.value()
+
+
 class MetarParser(Metar.Metar):
     def __init__(self, metarcode, month=None, year=None, utcdelta=None):
         """Parse raw METAR code."""
         self.code = metarcode              # original METAR code
+        self._datetime = None              # cloudside -- datetime for ASOS
         self.type = 'METAR'                # METAR (routine) or SPECI (special)
         self.mod = "AUTO"                  # AUTO (automatic) or COR (corrected)
         self.station_id = None             # 4-character ICAO station code
@@ -156,6 +159,32 @@ class MetarParser(Metar.Metar):
         """
         self._unparsed_groups.append(d['group'])
 
+    @property
+    def datetime(self):
+        '''get date/time of asos reading'''
+        if self._datetime is None:
+            yr = int(self.code[13:17])   # year
+            mo = int(self.code[17:19])   # month
+            da = int(self.code[19:21])   # day
+            hr = int(self.code[37:39])   # hour
+            mi = int(self.code[40:42])   # minute
+
+            self._datetime = datetime.datetime(yr, mo, da, hr, mi)
+
+        return self._datetime
+
+    def asos_dict(self):
+        return {
+            'datetime': self.datetime,
+            'raw_precipitation': value_or_not(self.precip_1hr),
+            'temperature': value_or_not(self.temp),
+            'dew_point': value_or_not(self.dewpt),
+            'wind_speed': value_or_not(self.wind_speed),
+            'wind_direction': value_or_not(self.wind_dir),
+            'air_pressure': value_or_not(self.press),
+            'sky_cover': _process_sky_cover(self)
+        }
+
 
 class WeatherStation(object):
     """An object representing a weather station.
@@ -175,6 +204,7 @@ class WeatherStation(object):
 
     """
 
+    @numpy.deprecate
     def __init__(self, sta_id, city=None, state=None, country=None,
                  lat=None, lon=None, max_attempts=10, progress_bar=None,
                  datadir=None):
@@ -187,7 +217,10 @@ class WeatherStation(object):
         self.lat = lat
         self.lon = lon
 
-        self.tracker = validate.progress_bar(progress_bar)
+        if progress_bar is None:
+            self.tracker = lambda x: x
+        else:
+            self.tracker = progress_bar
 
         if self.state:
             self.name = "%s, %s" % (self.city, self.state)
@@ -352,7 +385,7 @@ class WeatherStation(object):
         os.makedirs(destination, exist_ok=True)
         return os.path.join(destination, datafile)
 
-    def _fetch_data(self, timestamp, attempt, src='asos', force_download=False):
+    def _fetch_data(self, timestamp, attempt, src='asos', force_download=True):
         ''' method that downloads data from a *src* for a *timestamp*
         returns the status of the download
             ('ok', 'bad', 'not there')
@@ -391,7 +424,7 @@ class WeatherStation(object):
                     successful = True
 
                 except Exception as e:
-                    logger.error('error parsing: %s\n' % (url,))
+                    _logger.error('error parsing: %s\n' % (url,))
 
             if not successful:
                 os.remove(outname)
@@ -810,6 +843,7 @@ def _process_sky_cover(obs):
     return cover
 
 
+@numpy.deprecate
 def getAllStations():
     stations = {}
 
@@ -822,6 +856,7 @@ def getAllStations():
     return stations
 
 
+@numpy.deprecate
 def getStationByID(sta_id):
     stations = getAllStations()
     try:
@@ -834,20 +869,23 @@ def getStationByID(sta_id):
     return sta
 
 
+@numpy.deprecate
 def _get_data(station, startdate, enddate, source, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
-
     return station._get_data(startdate, enddate, source, filename=filename)
 
 
+@numpy.deprecate
 def getASOSData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'asos', filename)
 
 
+@numpy.deprecate
 def getWundergroundData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'wunderground', filename)
 
 
+@numpy.deprecate
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'wunder_nonairport', filename)

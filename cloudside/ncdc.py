@@ -6,7 +6,7 @@ from matplotlib import colors
 from matplotlib import ticker
 from matplotlib import gridspec
 from matplotlib import colorbar
-from matplotlib import pyplot
+from matplotlib import figure
 import pandas
 
 
@@ -237,7 +237,7 @@ def availabilityByStation(stationdata, stationname, coopid, baseyear=1947,
     if not figsize:
         figsize = (6.5, 7.25)
 
-    fig = pyplot.figure(figsize=figsize)
+    fig = figure.Figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[20, 1])
     ax = fig.add_subplot(gs[0])
     cax = fig.add_subplot(gs[1])
@@ -303,7 +303,7 @@ def dataAvailabilityHeatmap(data, figsize=None):
     cmap.set_bad('1.0')
     norm = colors.BoundaryNorm(bounds, cmap.N, clip=True)
 
-    fig = pyplot.figure(figsize=figsize)
+    fig = figure.Figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=2, ncols=1, height_ratios=[1, 20])
 
     mdata = numpy.ma.masked_less(data.values, 1)
