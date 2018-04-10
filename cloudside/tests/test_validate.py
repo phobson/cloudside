@@ -64,3 +64,13 @@ def test_step(step, error):
 def test_file_status(filename, expected):
     fn = getTestFile(filename)
     validate.file_status(fn) == expected
+
+
+@pytest.mark.parametrize(('index', 'error'), [
+    (list('ABCD'), None),
+    (list('AABC'), ValueError)
+])
+def unique_index(index, error):
+    x = pandas.Series(range(4), index=index)
+    with raises(error):
+        pdtest.assert_series_equal(x, validate.unique_index(x))

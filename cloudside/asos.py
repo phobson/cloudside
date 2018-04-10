@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy
 import pandas
-import engarde.checks as ec
 
 from . station import MetarParser
 from . import validate
@@ -200,7 +199,7 @@ def parse_file(filepath, new_precipcol='precipitation'):
 
     rt = _find_reset_time(data['raw_precipitation'])
     precip = _process_precip(data, rt, 'raw_precipitation')
-    return data.assign(**{new_precipcol: precip}).pipe(ec.unique_index)
+    return data.assign(**{new_precipcol: precip})
 
 
 def get_data(station_id, startdate, stopdate, email, folder='.',
@@ -247,4 +246,5 @@ def get_data(station_id, startdate, stopdate, email, folder='.',
                              raw_folder=_raw_folder, pbar_fxn=pbar_fxn,
                              force_download=force_download)
     raw_files = validate.progress_bar(pbar_fxn, _raw_files, desc='Parsing')
-    return pandas.concat([parse_file(rf) for rf in raw_files]).pipe(ec.unique_index)
+    df = pandas.concat([parse_file(rf) for rf in raw_files])
+    return df.pipe(validate.unique_index)

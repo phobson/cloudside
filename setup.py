@@ -23,7 +23,7 @@ if __name__ == '__main__':
         download_url="http://sourceforge.net/project/platformdownload.php?group_id=134052",
         license="BSD 3-Clause",
         packages=find_packages(exclude=[]),
-        platforms="Python 3.4 and later.",
+        platforms="Python 3.6 and later.",
         classifiers=[
             "Development Status :: 3 - Alpha",
             "Environment :: Console",

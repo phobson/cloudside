@@ -60,3 +60,10 @@ def progress_bar(pbar_fxn, sequence, **kwargs):
     else:
         pbar = pbar_fxn(sequence, **kwargs)
     return pbar
+
+
+def unique_index(df):
+    if df.index.is_unique:
+        return df
+    else:
+        raise ValueError('index is not unique')

@@ -105,7 +105,7 @@ def test_parse_file():
 
 
 @mock.patch('ftplib.FTP')
-@mock.patch('engarde.checks.unique_index')
+@mock.patch('cloudside.validate.unique_index')
 @mock.patch('cloudside.asos._fetch_file')
 @mock.patch('cloudside.asos.parse_file', return_value=pandas.Series([1, 2, 3]))
 def test_get_data(parser, fetcher, checker, ftp):
