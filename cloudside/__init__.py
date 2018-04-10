@@ -4,7 +4,7 @@ from . import storms
 from . import viz
 from . import ncdc
 
-from .tests import test
+from .tests import test, teststrict
 
 
 __author__ = "Paul Hobson"
