@@ -8,6 +8,9 @@ from pkg_resources import resource_string
 from urllib import request, error, parse
 from http import cookiejar
 import logging
+from ftplib import FTP
+from functools import lru_cache
+from pathlib import Path
 
 # math stuff
 import numpy
@@ -19,18 +22,16 @@ from metar import Metar, Datatypes
 from . import validate
 
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
-__all__ = [
-    'getAllStations',
-    'getStationByID',
-    'getASOSData',
-    'getWundergroundData',
-    'getWunderground_NonAirportData',
-    'WeatherStation',
-    'logger'
-]
+# __all__ = [
+#     'all_stations',
+#     # 'create_station',
+#     'get_data',
+#     'MetarParser',
+#     'WeatherStation',
+# ]
 
 
 def _report_match(handler, match):
@@ -39,10 +40,18 @@ def _report_match(handler, match):
         logging.debug('{} did not match'.format(handler.__name__))
 
 
+def value_or_not(obs_attr):
+    if obs_attr is None:
+        return numpy.nan
+    else:
+        return obs_attr.value()
+
+
 class MetarParser(Metar.Metar):
     def __init__(self, metarcode, month=None, year=None, utcdelta=None):
         """Parse raw METAR code."""
         self.code = metarcode              # original METAR code
+        self._datetime = None              # cloudside -- datetime for ASOS
         self.type = 'METAR'                # METAR (routine) or SPECI (special)
         self.mod = "AUTO"                  # AUTO (automatic) or COR (corrected)
         self.station_id = None             # 4-character ICAO station code
@@ -155,6 +164,32 @@ class MetarParser(Metar.Metar):
         Handle otherwise unparseable main-body groups.
         """
         self._unparsed_groups.append(d['group'])
+
+    @property
+    def datetime(self):
+        '''get date/time of asos reading'''
+        if self._datetime is None:
+            yr = int(self.code[13:17])   # year
+            mo = int(self.code[17:19])   # month
+            da = int(self.code[19:21])   # day
+            hr = int(self.code[37:39])   # hour
+            mi = int(self.code[40:42])   # minute
+
+            self._datetime = datetime.datetime(yr, mo, da, hr, mi)
+
+        return self._datetime
+
+    def asos_dict(self):
+        return {
+            'datetime': self.datetime,
+            'raw_precipitation': value_or_not(self.precip_1hr),
+            'temperature': value_or_not(self.temp),
+            'dew_point': value_or_not(self.dewpt),
+            'wind_speed': value_or_not(self.wind_speed),
+            'wind_direction': value_or_not(self.wind_dir),
+            'air_pressure': value_or_not(self.press),
+            'sky_cover': _process_sky_cover(self)
+        }
 
 
 class WeatherStation(object):
@@ -352,7 +387,7 @@ class WeatherStation(object):
         os.makedirs(destination, exist_ok=True)
         return os.path.join(destination, datafile)
 
-    def _fetch_data(self, timestamp, attempt, src='asos', force_download=False):
+    def _fetch_data(self, timestamp, attempt, src='asos', force_download=True):
         ''' method that downloads data from a *src* for a *timestamp*
         returns the status of the download
             ('ok', 'bad', 'not there')
