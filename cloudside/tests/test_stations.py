@@ -14,7 +14,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from cloudside import station
-from .helpers import get_test_file
+from .helpers import get_test_file, raises
 
 
 class FakeClass(object):
@@ -187,15 +187,17 @@ def test_WS_find_dir(sta):
     assert result == expected
 
 
-def test_WS_find_file(sta, ts):
-    asos_result = sta._find_file(ts[0], 'asos', 'raw')
+@pytest.mark.xfail
+def test_WS_find_file_wunder(sta, ts):
     wunder_result = sta._find_file(ts[0], 'wunderground', 'flat')
-
-    asos_expected = '{}_201201.dat'.format(sta.sta_id)
     wunder_expected = '{}_20120101.csv'.format(sta.sta_id)
-
-    assert asos_result == asos_expected
     assert wunder_result == wunder_expected
+
+
+def test_WS_find_file_asos(sta, ts):
+    asos_result = sta._find_file(ts[0], 'asos', 'raw')
+    asos_expected = '{}_201201.dat'.format(sta.sta_id)
+    assert asos_result == asos_expected
 
 
 def test_WS_set_cookies(sta):
@@ -203,34 +205,39 @@ def test_WS_set_cookies(sta):
     assert isinstance(sta.wunderground, request.OpenerDirector)
 
 
-def test_WS_url_by_date(sta, ts):
+@pytest.mark.xfail
+def test_WS_url_by_date_wunder(sta, ts):
     wunder_result = sta._url_by_date(ts[0], src='wunderground')
-    asos_result = sta._url_by_date(ts[0], src='asos')
     wunder_expected = (
         "http://www.wunderground.com/history/airport/{}"
         "/2012/01/01/DailyHistory.html?&&theprefset=SHOWMETAR"
         "&theprefvalue=1&format=1"
     ).format(sta.sta_id)
+    assert wunder_result == wunder_expected
 
+
+def test_WS_url_by_date_asos(sta, ts):
+    asos_result = sta._url_by_date(ts[0], src='asos')
     asos_expected = (
         "ftp://ftp.ncdc.noaa.gov/pub/data/asos-fivemin"
         "/6401-2012/64010{}201201.dat"
     ).format(sta.sta_id)
-
-    assert wunder_result == wunder_expected
     assert asos_result == asos_expected
 
 
-def test_WS_make_data_file(sta, ts):
+@pytest.mark.xfail
+def test_WS_make_data_file_wunder(sta, ts):
     wunder_result = sta._make_data_file(ts[0], 'wunderground', 'flat')
-    asos_result = sta._make_data_file(ts[0], 'asos', 'raw')
-
     wunder_expected = os.path.join(sta.datadir, sta.sta_id, 'wunderground',
                                    'flat', '{}_20120101.csv'.format(sta.sta_id))
-    asos_expected = os.path.join(sta.datadir, sta.sta_id, 'asos',
-                                 'raw', '{}_201201.dat'.format(sta.sta_id))
 
     assert wunder_result == wunder_expected
+
+
+def test_WS_make_data_file_asos(sta, ts):
+    asos_result = sta._make_data_file(ts[0], 'asos', 'raw')
+    asos_expected = os.path.join(sta.datadir, sta.sta_id, 'asos',
+                                 'raw', '{}_201201.dat'.format(sta.sta_id))
     assert asos_result == asos_expected
 
 
@@ -254,9 +261,10 @@ def test_WS_get_data_APIs(sta, fetcher_name, fetcher_key):
 def test_fetch_data(sta, tstamp, known_statuses):
     tstamp = pandas.Timestamp(tstamp)
     status_asos = sta._fetch_data(tstamp, 1, src='asos')
-    status_wund = sta._fetch_data(tstamp, 1, src='wunderground')
     assert status_asos in known_statuses
-    assert status_wund in known_statuses
+    with raises(NotImplementedError):
+        status_wund = sta._fetch_data(tstamp, 1, src='wunderground')
+
 
 
 @pytest.mark.slow
@@ -264,23 +272,20 @@ def test_attempt_download(sta, known_statuses):
     good_ts = pandas.Timestamp('2012-01-01')
     bad_ts = pandas.Timestamp('1999-01-01')
     status_asos, attempt1 = sta._attempt_download(good_ts, src='asos')
-    status_wund, attempt2 = sta._attempt_download(good_ts, src='wunderground')
 
     assert status_asos in known_statuses
-    assert status_wund in known_statuses
 
     status_fail, attempt3 = sta._attempt_download(bad_ts, src='asos')
     assert status_fail == 'not there'
 
     assert attempt1 <= sta.max_attempts
-    assert attempt2 <= sta.max_attempts
     assert attempt3 == sta.max_attempts
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize('src, datestr', [
     ('asos', '201201'),
-    ('wunderground', '20120101'),
+    pytest.mark.xfail(('wunderground', '20120101')),
 ])
 def test_process_file(sta, src, datestr, known_statuses):
     tstamp = pandas.Timestamp('2012-01-01')
@@ -329,16 +334,15 @@ def test_getDataSaveFile(sta, start, end):
     sta._get_data(start, end, 'asos', 'testfile.csv')
 
 
-def test_loadCompData_asos(sta):
-    sta.loadCompiledFile('asos', filename='testfile.csv')
-    sta.loadCompiledFile('asos', filenum=1)
-
-
-def test_loadCompData_wunderground(sta):
-    sta.loadCompiledFile('wunderground', filename='testfile.csv')
-    sta.loadCompiledFile('wunderground', filenum=1)
-
-
-def test_loadCompData_wunderground_nonairport(sta):
-    sta.loadCompiledFile('wunder_nonairport', filename='testfile.csv')
-    sta.loadCompiledFile('wunder_nonairport', filenum=1)
+@pytest.mark.parametrize(('src', 'error'), [
+    ('asos', None),
+    ('wunderground', NotImplementedError),
+    ('wunder_nonairport', NotImplementedError),
+])
+@pytest.mark.parametrize('kwds', [
+    {'filename': 'testfile.csv'},
+    {'filenum': 1}
+])
+def test_loadCompData_asos(sta, src, kwds, error):
+    with raises(error):
+        sta.loadCompiledFile(src, **kwds)

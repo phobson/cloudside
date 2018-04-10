@@ -25,13 +25,7 @@ from . import validate
 _logger = logging.getLogger(__name__)
 
 
-# __all__ = [
-#     'all_stations',
-#     # 'create_station',
-#     'get_data',
-#     'MetarParser',
-#     'WeatherStation',
-# ]
+# __all__ = ['MetarParser', 'WeatherStation']
 
 
 def _report_match(handler, match):
@@ -210,6 +204,7 @@ class WeatherStation(object):
 
     """
 
+    @numpy.deprecate
     def __init__(self, sta_id, city=None, state=None, country=None,
                  lat=None, lon=None, max_attempts=10, progress_bar=None,
                  datadir=None):
@@ -222,7 +217,10 @@ class WeatherStation(object):
         self.lat = lat
         self.lon = lon
 
-        self.tracker = validate.progress_bar(progress_bar)
+        if progress_bar is None:
+            self.tracker = lambda x: x
+        else:
+            self.tracker = progress_bar
 
         if self.state:
             self.name = "%s, %s" % (self.city, self.state)
@@ -426,7 +424,7 @@ class WeatherStation(object):
                     successful = True
 
                 except Exception as e:
-                    logger.error('error parsing: %s\n' % (url,))
+                    _logger.error('error parsing: %s\n' % (url,))
 
             if not successful:
                 os.remove(outname)
@@ -845,6 +843,7 @@ def _process_sky_cover(obs):
     return cover
 
 
+@numpy.deprecate
 def getAllStations():
     stations = {}
 
@@ -857,6 +856,7 @@ def getAllStations():
     return stations
 
 
+@numpy.deprecate
 def getStationByID(sta_id):
     stations = getAllStations()
     try:
@@ -869,20 +869,23 @@ def getStationByID(sta_id):
     return sta
 
 
+@numpy.deprecate
 def _get_data(station, startdate, enddate, source, filename):
     if not isinstance(station, WeatherStation):
         station = getStationByID(station)
-
     return station._get_data(startdate, enddate, source, filename=filename)
 
 
+@numpy.deprecate
 def getASOSData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'asos', filename)
 
 
+@numpy.deprecate
 def getWundergroundData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'wunderground', filename)
 
 
+@numpy.deprecate
 def getWunderground_NonAirportData(station, startdate, enddate, filename=None):
     return _get_data(station, startdate, enddate, 'wunder_nonairport', filename)
