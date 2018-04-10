@@ -72,7 +72,6 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
     if not hasattr(dataframe, col):
         raise ValueError('input `dataframe` must have a `%s` column' % col)
 
-
     fig, ax = validate.axes_object(ax)
 
     data, rule, plotkind = _resampler(dataframe, col, freq=freq, how=how)

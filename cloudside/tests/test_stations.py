@@ -95,14 +95,14 @@ def test_MetarParser_datetime(asos_metar):
 def test_MetarParser_asos_dict(asos_metar):
     result = asos_metar.asos_dict()
     expected = {
-            'datetime': datetime(2017, 1, 8, 9),
-            'raw_precipitation': 0.05,
-            'temperature': 0.0,
-            'dew_point': -0.6,
-            'wind_speed': 23.0,
-            'wind_direction': 100,
-            'air_pressure': 250.0,
-            'sky_cover': 1.0,
+        'datetime': datetime(2017, 1, 8, 9),
+        'raw_precipitation': 0.05,
+        'temperature': 0.0,
+        'dew_point': -0.6,
+        'wind_speed': 23.0,
+        'wind_direction': 100,
+        'air_pressure': 250.0,
+        'sky_cover': 1.0,
     }
     assert result == expected
 
@@ -264,7 +264,6 @@ def test_fetch_data(sta, tstamp, known_statuses):
     assert status_asos in known_statuses
     with raises(NotImplementedError):
         status_wund = sta._fetch_data(tstamp, 1, src='wunderground')
-
 
 
 @pytest.mark.slow

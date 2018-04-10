@@ -195,7 +195,7 @@ def parse_file(filepath, new_precipcol='precipitation'):
                 .groupby('datetime').last()
                 .sort_index()
                 .resample(FIVEMIN).asfreq()
-            )
+        )
 
     rt = _find_reset_time(data['raw_precipitation'])
     precip = _process_precip(data, rt, 'raw_precipitation')

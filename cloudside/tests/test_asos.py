@@ -59,7 +59,7 @@ def test__fetch_file(ftp, exists, force, call_count):
 @mock.patch.object(ftplib.FTP, 'login')
 def test__fetch_data(ftp_login, ftp_retr, exists, force, call_count):
     with tempfile.TemporaryDirectory() as rawdir:
-        expected_paths =[
+        expected_paths = [
             pathlib.Path(rawdir).joinpath('64010KPDX201610.dat'),
             pathlib.Path(rawdir).joinpath('64010KPDX201611.dat'),
             pathlib.Path(rawdir).joinpath('64010KPDX201612.dat'),
