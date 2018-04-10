@@ -36,7 +36,7 @@ def test_axes_object_with_None():
 
 @pytest.mark.parametrize(('src', 'error'), [
     ('asos', None),
-    ('wunderground', None),
+    ('wunderground', NotImplementedError),
     ('junk', ValueError)
 ])
 def test_source(src, error):

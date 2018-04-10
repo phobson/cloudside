@@ -23,8 +23,10 @@ def axes_object(ax):
 
 def source(source):
     """ checks that a *source* value is valid """
-    if source.lower() not in ('wunderground', 'asos', 'wunder_nonairport'):
-        raise ValueError('source must be one of "wunderground" or "asos"')
+    if source.lower() in ('wunderground', 'wunder_nonairport'):
+        raise NotImplementedError('wunderground support is borked')
+    elif source.lower() not in ('asos',):
+        raise ValueError('source must now be "asos"')
     return source.lower()
 
 
@@ -52,8 +54,9 @@ def file_status(filename):
     return status
 
 
-def progress_bar(pbar):
-    if not pbar:
-        def pbar(x):
-            return x
+def progress_bar(pbar_fxn, sequence, **kwargs):
+    if not pbar_fxn:
+        return sequence
+    else:
+        pbar = pbar_fxn(sequence, **kwargs)
     return pbar
