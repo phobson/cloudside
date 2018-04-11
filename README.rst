@@ -25,7 +25,7 @@ Basically I wanted a library that could do something like this:
 .. code:: python
 
     import cloudside
-    data = cloudside.getASOSData('KPDX', '2012-12-01', '2015-05-01')
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01')
     fig = cloudside.viz.windrose(data)
 
 And so ``cloudside`` does that.
