@@ -7,5 +7,10 @@ import cloudside
 matplotlib.use('agg')
 style.use('classic')
 
-status = cloudside.teststrict()
+if '--strict' in sys.argv:
+    sys.argv.remove('--strict')
+    status = cloudside.teststrict(*sys.argv[1:])
+else:
+    status = cloudside.test(*sys.argv[1:])
+
 sys.exit(status)
