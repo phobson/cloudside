@@ -126,14 +126,18 @@ def _find_reset_time(precip_ts):
         if g.shape[0] > 0:
             return g.idxmin()
 
-    rt = (
-        precip_ts.resample(HOURLY)
-            .apply(get_idxmin)
-            .dropna()
-            .dt.minute.value_counts()
-            .idxmax()
-    )
-    return rt
+    if not precip_ts.any():
+        return 0  # sometimes a month doesn't have any rain
+    else:
+        # most of the time it does though
+        rt = (
+            precip_ts.resample(HOURLY)
+                .apply(get_idxmin)
+                .dropna()
+                .dt.minute.value_counts()
+                .idxmax()
+        )
+        return rt
 
 
 def _process_precip(data, rt, raw_precipcol):

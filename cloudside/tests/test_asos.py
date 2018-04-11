@@ -24,8 +24,8 @@ def fake_rain_data():
         0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
         1.,  2.,  3.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.
     ]
-    daterange = pandas.date_range(start='2001-01-01 12:00',
-                                  end='2001-01-01 15:55',
+    daterange = pandas.date_range(start='2001-01-01 11:55',
+                                  end='2001-01-01 15:50',
                                   freq=asos.FIVEMIN)
     return pandas.Series(rain_raw, index=daterange)
 
@@ -77,15 +77,18 @@ def test__fetch_data(ftp_login, ftp_retr, exists, force, call_count):
         assert ftp_retr.call_count == call_count
 
 
-def test__find_reset_time(fake_rain_data):
+@pytest.mark.parametrize(('all_na', 'expected'), [(False, 55), (True, 0)])
+def test__find_reset_time(fake_rain_data, all_na, expected):
+    if all_na:
+        fake_rain_data.loc[:] = numpy.nan
+
     result = asos._find_reset_time(fake_rain_data)
-    expected = 0
     assert result == expected
 
 
 def test_process_precip(fake_rain_data):
     precip = fake_rain_data.to_frame('raw_precip')
-    result = asos._process_precip(precip, 0, 'raw_precip')
+    result = asos._process_precip(precip, 55, 'raw_precip')
     expected = numpy.array([
         0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
         0., 0., 0., 0., 5., 0., 0., 0., 0., 0., 0., 0., 0.,
