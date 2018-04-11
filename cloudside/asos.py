@@ -104,7 +104,7 @@ def _fetch_data(station_id, startdate, stopdate, email, raw_folder,
             _fetch_file(station_id, ts, ftp, raw_folder, force_download)
             for ts in dates_to_fetch
         ]
-    return raw_paths
+    return filter(lambda x: x is not None, raw_paths)
 
 
 def _find_reset_time(precip_ts):
@@ -194,16 +194,20 @@ def parse_file(filepath, new_precipcol='precipitation'):
     """
 
     with filepath.open('r') as rawf:
+        df = pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
+
+    if df.shape[0] == 0:
+        return df
+    else:
         data = (
-            pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
-                .groupby('datetime').last()
-                .sort_index()
-                .resample(FIVEMIN).asfreq()
+            df.groupby('datetime').last()
+              .sort_index()
+              .resample(FIVEMIN).asfreq()
         )
 
-    rt = _find_reset_time(data['raw_precipitation'])
-    precip = _process_precip(data, rt, 'raw_precipitation')
-    return data.assign(**{new_precipcol: precip})
+        rt = _find_reset_time(data['raw_precipitation'])
+        precip = _process_precip(data, rt, 'raw_precipitation')
+        return data.assign(**{new_precipcol: precip})
 
 
 def get_data(station_id, startdate, stopdate, email, folder='.',

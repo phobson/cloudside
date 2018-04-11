@@ -49,32 +49,22 @@ def test__fetch_file(ftp, exists, force, call_count):
         assert ftp.retrlines.call_count == call_count
 
 
-@pytest.mark.parametrize(('exists', 'force', 'call_count'), [
-    (True, True, 5),
-    (True, False, 0),
-    (False, True, 5),
-    (False, False, 5),
-])
 @mock.patch.object(ftplib.FTP, 'retrlines')
 @mock.patch.object(ftplib.FTP, 'login')
-def test__fetch_data(ftp_login, ftp_retr, exists, force, call_count):
+def test__fetch_data(ftp_login, ftp_retr):
     with tempfile.TemporaryDirectory() as rawdir:
-        expected_paths = [
-            pathlib.Path(rawdir).joinpath('64010KPDX201610.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201611.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201612.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201701.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201702.dat'),
-        ]
-        if exists:
-            _ = [ep.touch() for ep in expected_paths]
 
-        raw_paths = asos._fetch_data('KPDX', '2016-10-01', '2017-02-01',
-                                     'tester@cloudside.net', rawdir,
-                                     force_download=force)
-        assert raw_paths == expected_paths
+
+
+        raw_paths = asos._fetch_data('KPDX', '1999-10-01', '2000-02-01',
+                                     'tester@cloudside.net', rawdir)
+        assert isinstance(raw_paths, filter)
+        assert all([
+            (isinstance(rp, pathlib.Path) or (rp is None))
+            for rp in raw_paths
+        ])
         assert ftp_login.called_once_with('tester@cloudside.net')
-        assert ftp_retr.call_count == call_count
+        assert ftp_retr.call_count == 5
 
 
 @pytest.mark.parametrize(('all_na', 'expected'), [(False, 55), (True, 0)])
