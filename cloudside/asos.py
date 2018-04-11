@@ -1,7 +1,7 @@
 # std lib stuff
 import datetime
 import logging
-from ftplib import FTP
+from ftplib import FTP, error_perm
 from pathlib import Path
 
 import numpy
@@ -57,10 +57,13 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     dst_path = Path(raw_folder).joinpath(src_name)
     if (not dst_path.exists()) or force_download:
         with dst_path.open(mode='w', encoding='utf-8') as dst_obj:
-            ftp.retrlines(
-                f'RETR {ftpfolder}/{src_name}',
-                lambda x: dst_obj.write(x + '\n')
-            )
+            try:
+                ftp.retrlines(
+                    f'RETR {ftpfolder}/{src_name}',
+                    lambda x: dst_obj.write(x + '\n')
+                )
+            except error_perm:
+                dst_path = None
     return dst_path
 
 
