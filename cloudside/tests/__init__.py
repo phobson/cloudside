@@ -3,7 +3,6 @@ from pkg_resources import resource_filename
 import cloudside
 from .helpers import requires
 
-
 try:
     import pytest
 except ImportError:
@@ -18,6 +17,11 @@ def test(*args):
 
 
 @requires(pytest, 'pytest')
-def teststrict():
-    options = [resource_filename('cloudside', ''), '--pep', '--mpl', '--runslow']
+def teststrict(*args):
+    options = [
+        resource_filename('cloudside', ''),
+        '--pep8', '--mpl', '--runslow',
+        *list(args)
+    ]
+    options = list(set(options))
     return pytest.main(options)

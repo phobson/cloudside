@@ -1,7 +1,7 @@
 # std lib stuff
 import datetime
 import logging
-from ftplib import FTP
+from ftplib import FTP, error_perm
 from pathlib import Path
 
 import numpy
@@ -57,10 +57,13 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     dst_path = Path(raw_folder).joinpath(src_name)
     if (not dst_path.exists()) or force_download:
         with dst_path.open(mode='w', encoding='utf-8') as dst_obj:
-            ftp.retrlines(
-                f'RETR {ftpfolder}/{src_name}',
-                lambda x: dst_obj.write(x + '\n')
-            )
+            try:
+                ftp.retrlines(
+                    f'RETR {ftpfolder}/{src_name}',
+                    lambda x: dst_obj.write(x + '\n')
+                )
+            except error_perm:
+                dst_path = None
     return dst_path
 
 
@@ -104,7 +107,7 @@ def _fetch_data(station_id, startdate, stopdate, email, raw_folder,
             _fetch_file(station_id, ts, ftp, raw_folder, force_download)
             for ts in dates_to_fetch
         ]
-    return raw_paths
+    return filter(lambda x: x is not None, raw_paths)
 
 
 def _find_reset_time(precip_ts):
@@ -126,14 +129,18 @@ def _find_reset_time(precip_ts):
         if g.shape[0] > 0:
             return g.idxmin()
 
-    rt = (
-        precip_ts.resample(HOURLY)
-            .apply(get_idxmin)
-            .dropna()
-            .dt.minute.value_counts()
-            .idxmax()
-    )
-    return rt
+    if not precip_ts.any():
+        return 0  # sometimes a month doesn't have any rain
+    else:
+        # most of the time it does though
+        rt = (
+            precip_ts.resample(HOURLY)
+                .apply(get_idxmin)
+                .dropna()
+                .dt.minute.value_counts()
+                .idxmax()
+        )
+        return rt
 
 
 def _process_precip(data, rt, raw_precipcol):
@@ -190,16 +197,20 @@ def parse_file(filepath, new_precipcol='precipitation'):
     """
 
     with filepath.open('r') as rawf:
+        df = pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
+
+    if df.shape[0] == 0:
+        return df
+    else:
         data = (
-            pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
-                .groupby('datetime').last()
-                .sort_index()
-                .resample(FIVEMIN).asfreq()
+            df.groupby('datetime').last()
+              .sort_index()
+              .resample(FIVEMIN).asfreq()
         )
 
-    rt = _find_reset_time(data['raw_precipitation'])
-    precip = _process_precip(data, rt, 'raw_precipitation')
-    return data.assign(**{new_precipcol: precip})
+        rt = _find_reset_time(data['raw_precipitation'])
+        precip = _process_precip(data, rt, 'raw_precipitation')
+        return data.assign(**{new_precipcol: precip})
 
 
 def get_data(station_id, startdate, stopdate, email, folder='.',

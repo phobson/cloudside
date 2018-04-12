@@ -24,10 +24,14 @@ def fake_rain_data():
         0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
         1.,  2.,  3.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.
     ]
-    daterange = pandas.date_range(start='2001-01-01 12:00',
-                                  end='2001-01-01 15:55',
+    daterange = pandas.date_range(start='2001-01-01 11:55',
+                                  end='2001-01-01 15:50',
                                   freq=asos.FIVEMIN)
     return pandas.Series(rain_raw, index=daterange)
+
+
+def retr_error(cmd, action):
+    raise ftplib.error_perm
 
 
 @pytest.mark.parametrize(('exists', 'force', 'call_count'), [
@@ -36,56 +40,55 @@ def fake_rain_data():
     (False, True, 1),
     (False, False, 1),
 ])
+@pytest.mark.parametrize('datestr', ['2016-01-01', '1999-01-01'])
 @mock.patch('ftplib.FTP')
-def test__fetch_file(ftp, exists, force, call_count):
+def test__fetch_file(ftp, exists, force, call_count, datestr):
     ts = pandas.Timestamp('2016-01-01')
     with tempfile.TemporaryDirectory() as rawdir:
-        expected_path = pathlib.Path(rawdir).joinpath('64010KPDX201601.dat')
+        std_path = pathlib.Path(rawdir).joinpath(f'64010KPDX{ts.year}01.dat')
         if exists:
-            expected_path.touch()
+            std_path.touch()
 
-        dst_path = asos._fetch_file('KPDX', ts, ftp, rawdir, force)
+        if ts.year == 1999 and call_count == 1:
+            expected_path = None
+        else:
+            expected_path = std_path
+
+        if expected_path is None:
+            ftp.retrlines.side_effect = retr_error
+
+        dst_path = asos._fetch_file('KPDX', ts, ftp, rawdir, force_download=force)
         assert dst_path == expected_path
         assert ftp.retrlines.call_count == call_count
 
 
-@pytest.mark.parametrize(('exists', 'force', 'call_count'), [
-    (True, True, 5),
-    (True, False, 0),
-    (False, True, 5),
-    (False, False, 5),
-])
 @mock.patch.object(ftplib.FTP, 'retrlines')
 @mock.patch.object(ftplib.FTP, 'login')
-def test__fetch_data(ftp_login, ftp_retr, exists, force, call_count):
+def test__fetch_data(ftp_login, ftp_retr):
     with tempfile.TemporaryDirectory() as rawdir:
-        expected_paths = [
-            pathlib.Path(rawdir).joinpath('64010KPDX201610.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201611.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201612.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201701.dat'),
-            pathlib.Path(rawdir).joinpath('64010KPDX201702.dat'),
-        ]
-        if exists:
-            _ = [ep.touch() for ep in expected_paths]
-
-        raw_paths = asos._fetch_data('KPDX', '2016-10-01', '2017-02-01',
-                                     'tester@cloudside.net', rawdir,
-                                     force_download=force)
-        assert raw_paths == expected_paths
+        raw_paths = asos._fetch_data('KPDX', '1999-10-01', '2000-02-01',
+                                     'tester@cloudside.net', rawdir)
+        assert isinstance(raw_paths, filter)
+        assert all([
+            (isinstance(rp, pathlib.Path) or (rp is None))
+            for rp in raw_paths
+        ])
         assert ftp_login.called_once_with('tester@cloudside.net')
-        assert ftp_retr.call_count == call_count
+        assert ftp_retr.call_count == 5
 
 
-def test__find_reset_time(fake_rain_data):
+@pytest.mark.parametrize(('all_na', 'expected'), [(False, 55), (True, 0)])
+def test__find_reset_time(fake_rain_data, all_na, expected):
+    if all_na:
+        fake_rain_data.loc[:] = numpy.nan
+
     result = asos._find_reset_time(fake_rain_data)
-    expected = 0
     assert result == expected
 
 
 def test_process_precip(fake_rain_data):
     precip = fake_rain_data.to_frame('raw_precip')
-    result = asos._process_precip(precip, 0, 'raw_precip')
+    result = asos._process_precip(precip, 55, 'raw_precip')
     expected = numpy.array([
         0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
         0., 0., 0., 0., 5., 0., 0., 0., 0., 0., 0., 0., 0.,

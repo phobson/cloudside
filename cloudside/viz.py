@@ -93,7 +93,7 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
     return fig
 
 
-def hyetograph(dataframe, col='Precip', freq='hourly', ax=None,
+def hyetograph(dataframe, col='precipitation', freq='hourly', ax=None,
                downward=True):
     """ Plot showing rainfall depth over time.
 
@@ -126,7 +126,7 @@ def hyetograph(dataframe, col='Precip', freq='hourly', ax=None,
     return fig
 
 
-def psychromograph(dataframe, col='AtmPress', freq='hourly', how='mean',
+def psychromograph(dataframe, col='air_pressure', freq='hourly', how='mean',
                    ax=None):
     """ Plot showing barometric pressure over time.
 
@@ -158,7 +158,7 @@ def psychromograph(dataframe, col='AtmPress', freq='hourly', how='mean',
     return fig
 
 
-def temperature(dataframe, col='Temp', freq='hourly', how='mean',
+def temperature(dataframe, col='temperature', freq='hourly', how='mean',
                 ax=None):
     """ Plot showing temperature over time.
 
@@ -447,7 +447,7 @@ def rose(dataframe, magcol, dircol,
 
 
 @numpy.deprecate
-def windRose(dataframe, spdcol='WindSpd', dircol='WindDir', **kwargs):
+def windRose(dataframe, spdcol='wind_speed', dircol='wind_dir', **kwargs):
     return rose(dataframe, spdcol, dircol, **kwargs)
 
 
