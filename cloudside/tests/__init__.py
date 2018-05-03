@@ -6,7 +6,7 @@ from .helpers import requires
 try:
     import pytest
 except ImportError:
-    raise ImportError("pytest is requires to run tests")
+    pytest = None
 
 
 @requires(pytest, 'pytest')
