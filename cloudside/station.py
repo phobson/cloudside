@@ -31,7 +31,7 @@ _logger = logging.getLogger(__name__)
 def _report_match(handler, match):
     """Report success or failure of the given handler function. (DEBUG)"""
     if not match:
-        logging.debug('{} did not match'.format(handler.__name__))
+        _logger.debug('{} did not match'.format(handler.__name__))
 
 
 def value_or_not(obs_attr):
@@ -103,7 +103,7 @@ class MetarParser(Metar.Metar):
             ifailed = -1
             while igroup < ngroup and code:
                 pattern, handler, repeatable = self.handlers[igroup]
-                logging.debug('{}: {}'.format(handler.__name__, code))
+                _logger.debug('{}: {}'.format(handler.__name__, code))
                 m = pattern.match(code)
                 while m:
                     ifailed = -1
@@ -115,7 +115,7 @@ class MetarParser(Metar.Metar):
                     if not repeatable:
                         break
 
-                    logging.debug('{}: {}'.format(handler.__name__, code))
+                    _logger.debug('{}: {}'.format(handler.__name__, code))
                     m = pattern.match(code)
 
                 if not m and ifailed < 0:
@@ -124,7 +124,7 @@ class MetarParser(Metar.Metar):
                 igroup += 1
                 if igroup == ngroup and not m:
                     pattern, handler = (Metar.UNPARSED_RE, self._unparsed_group_handler)
-                    logging.info('{}: {}'.format(handler.__name__, code))
+                    _logger.info('{}: {}'.format(handler.__name__, code))
                     m = pattern.match(code)
                     _report_match(handler, m.group())
                     handler(m.groupdict())
@@ -138,7 +138,7 @@ class MetarParser(Metar.Metar):
             if pattern == Metar.REMARK_RE or self.press:
                 while code:
                     for pattern, handler in self.remark_handlers:
-                        logging.debug('{}: {}'.format(handler.__name__, code))
+                        _logger.debug('{}: {}'.format(handler.__name__, code))
                         m = pattern.match(code)
                         if m:
                             _report_match(handler, m.group())
@@ -147,11 +147,11 @@ class MetarParser(Metar.Metar):
                             break
 
         except Exception as err:
-            logging.error("failed while processing '" + code + "'\n" + " ".join(err.args))
+            _logger.debug("failed while processing '" + code + "'\n" + " ".join(err.args))
 
         if self._unparsed_groups:
             code = ' '.join(self._unparsed_groups)
-            logging.info("Unparsed groups in body: " + code)
+            _logger.info("Unparsed groups in body: " + code)
 
     def _unparsed_group_handler(self, d):
         """
