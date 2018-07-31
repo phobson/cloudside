@@ -26,7 +26,7 @@ Basically I wanted a library that could do something like this:
 
     import cloudside
     data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01')
-    fig = cloudside.viz.windrose(data)
+    fig = cloudside.viz.rose(data)
 
 And so ``cloudside`` does that.
 
