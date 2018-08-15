@@ -55,6 +55,7 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     ftpfolder = f"/pub/data/asos-fivemin/6401-{timestamp.year}"
     src_name = f"64010{station_id}{timestamp.year}{timestamp.month:02d}.dat"
     dst_path = Path(raw_folder).joinpath(src_name)
+    has_failed = False
     if (not dst_path.exists()) or force_download:
         with dst_path.open(mode='w', encoding='utf-8') as dst_obj:
             try:
@@ -64,9 +65,9 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
                 )
             except error_perm:
                 _logger.log(logging.ERROR, f'No such file {src_name}')
-                failed = True
+                has_failed = True
 
-        if failed:
+        if has_failed:
             dst_path.unlink()
             dst_path = None
 
