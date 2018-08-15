@@ -3,6 +3,7 @@ from .exporters import *
 from . import storms
 from . import viz
 from . import ncdc
+from . import asos
 
 from .tests import test, teststrict
 
