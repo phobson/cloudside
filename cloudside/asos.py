@@ -55,6 +55,7 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     ftpfolder = f"/pub/data/asos-fivemin/6401-{timestamp.year}"
     src_name = f"64010{station_id}{timestamp.year}{timestamp.month:02d}.dat"
     dst_path = Path(raw_folder).joinpath(src_name)
+    has_failed = False
     if (not dst_path.exists()) or force_download:
         with dst_path.open(mode='w', encoding='utf-8') as dst_obj:
             try:
@@ -63,7 +64,13 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
                     lambda x: dst_obj.write(x + '\n')
                 )
             except error_perm:
-                dst_path = None
+                _logger.log(logging.ERROR, f'No such file {src_name}')
+                has_failed = True
+
+        if has_failed:
+            dst_path.unlink()
+            dst_path = None
+
     return dst_path
 
 
@@ -129,10 +136,8 @@ def _find_reset_time(precip_ts):
         if g.shape[0] > 0:
             return g.idxmin()
 
-    if not precip_ts.any():
-        return 0  # sometimes a month doesn't have any rain
-    else:
-        # most of the time it does though
+    rt = 0
+    if precip_ts.any():
         rt = (
             precip_ts.resample(HOURLY)
                 .apply(get_idxmin)
@@ -140,7 +145,7 @@ def _find_reset_time(precip_ts):
                 .dt.minute.value_counts()
                 .idxmax()
         )
-        return rt
+    return rt
 
 
 def _process_precip(data, rt, raw_precipcol):
@@ -196,12 +201,10 @@ def parse_file(filepath, new_precipcol='precipitation'):
 
     """
 
-    with open(filepath, 'r') as rawf:
+    with filepath.open('r') as rawf:
         df = pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
 
-    if df.shape[0] == 0:
-        return df
-    else:
+    if not df.empty:
         data = (
             df.groupby('datetime').last()
               .sort_index()

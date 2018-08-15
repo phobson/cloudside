@@ -24,7 +24,7 @@ def _wet_first_row(df, wetcol, diffcol):
 def _wet_window_diff(is_wet, ie_periods):
     return (
         is_wet.rolling(int(ie_periods), min_periods=1)
-              .apply(lambda window: window.any())
+              .apply(lambda window: window.any(), raw=False)
               .diff()
     )
 
@@ -120,11 +120,11 @@ def parse_record(data, intereventHours, outputfreqMinutes, precipcol=None,
             .assign(__event_start=lambda df: df['__windiff'] == 1)
             .assign(__event_end=lambda df: df['__windiff'].shift(-1 * ie_periods) == -1)
             .assign(__storm=lambda df: df['__event_start'].cumsum())
-            .assign(storm=lambda df: numpy.where(
+            .assign(**{stormcol: lambda df: numpy.where(
                 df['__storm'] == df['__event_end'].shift(2).cumsum(),
                 0,  # inter-event periods marked zero
                 df['__storm']  # actual events keep their number
-            ))
+            )})
     )
 
     if not debug:

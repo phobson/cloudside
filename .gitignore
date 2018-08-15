@@ -10,7 +10,8 @@
 *.egg-info
 
 
-# test output
+# test output #
+###############
 .noseids
 .coverage
 .cache

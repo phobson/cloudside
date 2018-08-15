@@ -282,6 +282,7 @@ def _compute_rose(dataframe, magcol, dircol,
 
     if dir_bins is None:
         dir_bins = numpy.arange(-0.5 * bin_width, 360 + bin_width * 0.5, bin_width)
+
     if dir_labels is None:
         dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
@@ -313,13 +314,9 @@ def _compute_rose(dataframe, magcol, dircol,
         ordered=True, name='Spd_bins',
     )
 
-    # we'll fill this this template with all zeroes so that we can
-    # just add it to out computed rose data.
-    rose_template = pandas.DataFrame(0, index=_rows, columns=_cols)
-
     # .add returns NA where both elements don't exists, so we
     # can just fill all of those with zeros again
-    return rose_template.add(raw_rose, fill_value=0)
+    return raw_rose.reindex(index=_rows, columns=_cols, fill_value=0.0)
 
 
 def _draw_rose(rose, ax, palette=None, show_calm=True,
