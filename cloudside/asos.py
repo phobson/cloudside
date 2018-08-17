@@ -16,8 +16,9 @@ _logger = logging.getLogger(__name__)
 
 
 __all__ = [
+    'fetch_files',
     'parse_file',
-    'get_data'
+    'get_data',
 ]
 
 
@@ -75,9 +76,9 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     return dst_path
 
 
-def _fetch_data(station_id, startdate, stopdate, email, raw_folder,
+def fetch_files(station_id, startdate, stopdate, email, raw_folder,
                 force_download=False, pbar_fxn=None):
-    """ Fetches a single file from the ASOS ftp and returns its pathh on the
+    """ Fetches a single file from the ASOS ftp and returns its path on the
     local file system
 
     Parameters
@@ -208,7 +209,6 @@ def parse_file(filepath, new_precipcol='precipitation'):
         except ParserError:
             return {}
 
-
     with filepath.open('r') as rawf:
         df = pandas.DataFrame(list(map(_do_parse, rawf)))
 
@@ -264,7 +264,7 @@ def get_data(station_id, startdate, stopdate, email, folder='.',
 
     _raw_folder = Path(folder).joinpath(raw_folder)
     _raw_folder.mkdir(parents=True, exist_ok=True)
-    _raw_files = _fetch_data(station_id, startdate, stopdate, email,
+    _raw_files = fetch_files(station_id, startdate, stopdate, email,
                              raw_folder=_raw_folder, pbar_fxn=pbar_fxn,
                              force_download=force_download)
     raw_files = validate.progress_bar(pbar_fxn, _raw_files, desc='Parsing')
