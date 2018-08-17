@@ -28,7 +28,7 @@ def basic_metar():
         'METAR KPDX 010855Z 00000KT 10SM FEW010 OVC200 04/03 A3031 P0005 '
         'RMK AO2 SLP262 T00390028 53010 $'
     )
-    return station.MetarParser(teststring)
+    return station.MetarParser(teststring, strict=False)
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def asos_metar():
         '10023G35KT 7SM -FZRA OVC065 00/M01 A2968 250 96 -1400 080/23G35 RMK '
         'AO2 PK WND 10035/1654 P0005 I1000 T00001006'
     )
-    return station.MetarParser(teststring)
+    return station.MetarParser(teststring, strict=False)
 
 
 @pytest.fixture
