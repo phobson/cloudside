@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy
 import pandas
+from metar.Metar import ParserError
 
 from . station import MetarParser
 from . import validate
@@ -201,8 +202,15 @@ def parse_file(filepath, new_precipcol='precipitation'):
 
     """
 
+    def _do_parse(x):
+        try:
+            return MetarParser(x, strict=False).asos_dict()
+        except ParserError:
+            return {}
+
+
     with filepath.open('r') as rawf:
-        df = pandas.DataFrame(list(map(lambda x: MetarParser(x, strict=False).asos_dict(), rawf)))
+        df = pandas.DataFrame(list(map(_do_parse, rawf)))
 
     if not df.empty:
         data = (
