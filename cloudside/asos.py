@@ -202,7 +202,7 @@ def parse_file(filepath, new_precipcol='precipitation'):
     """
 
     with filepath.open('r') as rawf:
-        df = pandas.DataFrame(list(map(lambda x: MetarParser(x).asos_dict(), rawf)))
+        df = pandas.DataFrame(list(map(lambda x: MetarParser(x, strict=False).asos_dict(), rawf)))
 
     if not df.empty:
         data = (

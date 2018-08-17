@@ -2,15 +2,13 @@
 import datetime
 import os
 import sys
-import pdb
 import codecs
 from pkg_resources import resource_string
-from urllib import request, error, parse
+from urllib import request, error
 from http import cookiejar
 import logging
 from ftplib import FTP
-from functools import lru_cache
-from pathlib import Path
+import warnings
 
 # math stuff
 import numpy
@@ -25,15 +23,6 @@ from . import validate
 _logger = logging.getLogger(__name__)
 
 
-# __all__ = ['MetarParser', 'WeatherStation']
-
-
-def _report_match(handler, match):
-    """Report success or failure of the given handler function. (DEBUG)"""
-    if not match:
-        _logger.debug('{} did not match'.format(handler.__name__))
-
-
 def value_or_not(obs_attr):
     if obs_attr is None:
         return numpy.nan
@@ -42,116 +31,14 @@ def value_or_not(obs_attr):
 
 
 class MetarParser(Metar.Metar):
-    def __init__(self, metarcode, month=None, year=None, utcdelta=None):
-        """Parse raw METAR code."""
-        self.code = metarcode              # original METAR code
-        self._datetime = None              # cloudside -- datetime for ASOS
-        self.type = 'METAR'                # METAR (routine) or SPECI (special)
-        self.mod = "AUTO"                  # AUTO (automatic) or COR (corrected)
-        self.station_id = None             # 4-character ICAO station code
-        self.time = None                   # observation time [datetime]
-        self.cycle = None                  # observation cycle (0-23) [int]
-        self.wind_dir = None               # wind direction [direction]
-        self.wind_speed = None             # wind speed [speed]
-        self.wind_gust = None              # wind gust speed [speed]
-        self.wind_dir_from = None          # beginning of range for win dir [direction]
-        self.wind_dir_to = None            # end of range for wind dir [direction]
-        self.vis = None                    # visibility [distance]
-        self.vis_dir = None                # visibility direction [direction]
-        self.max_vis = None                # visibility [distance]
-        self.max_vis_dir = None            # visibility direction [direction]
-        self.temp = None                   # temperature (C) [temperature]
-        self.dewpt = None                  # dew point (C) [temperature]
-        self.press = None                  # barometric pressure [pressure]
-        self.runway = []                   # runway visibility (list of tuples)
-        self.weather = []                  # present weather (list of tuples)
-        self.recent = []                   # recent weather (list of tuples)
-        self.sky = []                      # sky conditions (list of tuples)
-        self.windshear = []                # runways w/ wind shear (list of strings)
-        self.wind_speed_peak = None        # peak wind speed in last hour
-        self.wind_dir_peak = None          # direction of peak wind speed in last hour
-        self.peak_wind_time = None         # time of peak wind observation [datetime]
-        self.wind_shift_time = None        # time of wind shift [datetime]
-        self.max_temp_6hr = None           # max temp in last 6 hours
-        self.min_temp_6hr = None           # min temp in last 6 hours
-        self.max_temp_24hr = None          # max temp in last 24 hours
-        self.min_temp_24hr = None          # min temp in last 24 hours
-        self.press_sea_level = None        # sea-level pressure
-        self.precip_1hr = None             # precipitation over the last hour
-        self.precip_3hr = None             # precipitation over the last 3 hours
-        self.precip_6hr = None             # precipitation over the last 6 hours
-        self.precip_24hr = None            # precipitation over the last 24 hours
-        self._trend = False                # trend groups present (bool)
-        self._trend_groups = []            # trend forecast groups
-        self._remarks = []                 # remarks (list of strings)
-        self._unparsed_groups = []
-        self._unparsed_remarks = []
-
-        self._now = datetime.datetime.utcnow()
-        if utcdelta:
-            self._utcdelta = utcdelta
-        else:
-            self._utcdelta = datetime.datetime.now() - self._now
-
-        self._month = month
-        self._year = year
-
-        code = self.code + " "
-        try:
-            ngroup = len(self.handlers)
-            igroup = 0
-            ifailed = -1
-            while igroup < ngroup and code:
-                pattern, handler, repeatable = self.handlers[igroup]
-                _logger.debug('{}: {}'.format(handler.__name__, code))
-                m = pattern.match(code)
-                while m:
-                    ifailed = -1
-                    _report_match(handler, m.group())
-                    handler(self, m.groupdict())
-                    code = code[m.end():]
-                    if self._trend:
-                        code = self._do_trend_handlers(code)
-                    if not repeatable:
-                        break
-
-                    _logger.debug('{}: {}'.format(handler.__name__, code))
-                    m = pattern.match(code)
-
-                if not m and ifailed < 0:
-                    ifailed = igroup
-
-                igroup += 1
-                if igroup == ngroup and not m:
-                    pattern, handler = (Metar.UNPARSED_RE, self._unparsed_group_handler)
-                    _logger.info('{}: {}'.format(handler.__name__, code))
-                    m = pattern.match(code)
-                    _report_match(handler, m.group())
-                    handler(m.groupdict())
-                    code = code[m.end():]
-                    igroup = ifailed
-
-                    # if it's still -2 when we run out of main-body
-                    #  groups, we'll try parsing this group as a remark
-                    ifailed = -2
-
-            if pattern == Metar.REMARK_RE or self.press:
-                while code:
-                    for pattern, handler in self.remark_handlers:
-                        _logger.debug('{}: {}'.format(handler.__name__, code))
-                        m = pattern.match(code)
-                        if m:
-                            _report_match(handler, m.group())
-                            handler(self, m.groupdict())
-                            code = pattern.sub("", code, 1)
-                            break
-
-        except Exception as err:
-            _logger.debug("failed while processing '" + code + "'\n" + " ".join(err.args))
-
-        if self._unparsed_groups:
-            code = ' '.join(self._unparsed_groups)
-            _logger.info("Unparsed groups in body: " + code)
+    def __init__(self, *args, **kwargs):
+        self._datetime = None
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            super().__init__(*args, **kwargs)
+            if len(w) > 1:
+                for _w in w:
+                    _logger.info(_w.message)
 
     def _unparsed_group_handler(self, d):
         """
@@ -498,7 +385,7 @@ class WeatherStation(object):
                             metarstring = None
 
                     if metarstring is not None:
-                        obs = MetarParser(metarstring)
+                        obs = MetarParser(metarstring, strict=False)
                         rains = _append_val(obs.precip_1hr, rains, fillNone=0.0)
                         temps = _append_val(obs.temp, temps)
                         dewpt = _append_val(obs.dewpt, dewpt)
