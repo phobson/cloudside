@@ -64,9 +64,9 @@ def test__fetch_file(ftp, exists, force, call_count, datestr):
 
 @mock.patch.object(ftplib.FTP, 'retrlines')
 @mock.patch.object(ftplib.FTP, 'login')
-def test__fetch_data(ftp_login, ftp_retr):
+def test_fetch_files(ftp_login, ftp_retr):
     with tempfile.TemporaryDirectory() as rawdir:
-        raw_paths = asos._fetch_data('KPDX', '1999-10-01', '2000-02-01',
+        raw_paths = asos.fetch_files('KPDX', '1999-10-01', '2000-02-01',
                                      'tester@cloudside.net', rawdir)
         assert isinstance(raw_paths, filter)
         assert all([
