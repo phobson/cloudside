@@ -73,6 +73,7 @@ class MetarParser(Metar.Metar):
         }
 
 
+@numpy.deprecate
 class WeatherStation(object):
     """An object representing a weather station.
 
@@ -91,7 +92,6 @@ class WeatherStation(object):
 
     """
 
-    @numpy.deprecate
     def __init__(self, sta_id, city=None, state=None, country=None,
                  lat=None, lon=None, max_attempts=10, progress_bar=None,
                  datadir=None):
