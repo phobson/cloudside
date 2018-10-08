@@ -23,7 +23,7 @@ Basically I wanted a library that could do something like this:
 .. code:: python
 
     import cloudside
-    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01')
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01, 'me@mydomain.com')
     fig = cloudside.viz.rose(data)
 
 And so ``cloudside`` does that.
