@@ -19,10 +19,8 @@ before_install:
   - conda install nomkl
 
 install:
-  - conda create --channel=conda-forge --name testenv --yes python=$TRAVIS_PYTHON_VERSION numpy matplotlib pandas
+  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION numpy matplotlib pandas metar pytest coverage pytest-mpl pytest-cov pytest-pep8 click --channel=conda-forge
   - source activate testenv
-  - conda install --channel=conda-forge --yes pytest coverage pytest-mpl pytest-cov pytest-pep8
-  - pip install git+https://github.com/python-metar/python-metar.git
   - pip install coveralls
   - pip install .
 
