@@ -227,10 +227,10 @@ def rain_clock(dataframe, raincol='precip'):
     ax1 = fig.add_subplot(1, 2, 1, polar=True)
     ax2 = fig.add_subplot(1, 2, 2, polar=True)
     theta = numpy.arange(0.0, 2 * numpy.pi, 2 * numpy.pi / 12)
-    ax1.bar(theta + 2 * numpy.pi / 12 * 0.1, rain_by_hour[:12],
-            bar_width, color='DodgerBlue', linewidth=0.5)
-    ax2.bar(theta + 2 * numpy.pi / 12 * 0.1, rain_by_hour[12:],
-            bar_width, color='Crimson', linewidth=0.5)
+    ax1.bar(theta, rain_by_hour[:12], bar_width, align='center',
+        color='DodgerBlue', linewidth=0.5)
+    ax2.bar(theta, rain_by_hour[12:], bar_width, align='center',
+        color='Crimson', linewidth=0.5)
     ax1.set_title('AM Hours')
     ax2.set_title('PM Hours')
     for ax in [ax1, ax2]:
@@ -261,7 +261,7 @@ def _speed_labels(bins, units=None):
 
 def _dir_degrees_to_radins(directions):
     N = directions.shape[0]
-    barDir = (directions * numpy.pi / 180.) - (numpy.pi / N)
+    barDir = numpy.deg2rad(directions)
     barWidth = 2 * numpy.pi / N
     return barDir, barWidth
 
@@ -340,6 +340,7 @@ def _draw_rose(rose, ax, palette=None, show_calm=True,
                    edgecolor='none',
                    label=c1,
                    linewidth=0,
+                   align='center',
                    **other_opts)
 
         # all other columns
@@ -350,6 +351,7 @@ def _draw_rose(rose, ax, palette=None, show_calm=True,
                edgecolor='none',
                label=c2,
                linewidth=0,
+               align='center',
                **other_opts)
 
     if show_legend:

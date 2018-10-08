@@ -7,8 +7,6 @@ cloudside: download, assess, and visualize weather data
   :target: https://coveralls.io/github/phobson/cloudside?branch=master
 
 
-
-
 The problem this is solving
 ---------------------------
 
@@ -25,10 +23,13 @@ Basically I wanted a library that could do something like this:
 .. code:: python
 
     import cloudside
-    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01')
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01, 'me@mydomain.com')
     fig = cloudside.viz.rose(data)
 
 And so ``cloudside`` does that.
+After installation, you can also directly use it from the command line ::
+
+    $ cloudside get-data KPDX 2018-01-01 2018-09-30 me@mydomain.com
 
 Basic History
 -------------

@@ -2,10 +2,11 @@ from datetime import datetime
 import os
 from pkg_resources import resource_filename
 import tempfile
+import urllib
+import warnings
 
 import numpy
 import pandas
-from urllib import request
 import matplotlib.dates as mdates
 
 from unittest import mock
@@ -66,8 +67,8 @@ def fake_rain_data():
 
 @pytest.fixture(params=['KPDX'])
 def sta(request):
-    with tempfile.TemporaryDirectory() as datadir:
-
+    with warnings.catch_warnings(), tempfile.TemporaryDirectory() as datadir:
+        warnings.simplefilter('ignore')
         yield station.WeatherStation(request.param, city='Portland', state='OR',
                                      country='Cascadia', lat=999, lon=999,
                                      max_attempts=3, datadir=os.path.join(datadir, 'testtree'))
@@ -156,21 +157,24 @@ def test_process_sky_cover(basic_metar):
 
 
 def test_getAllStations():
-    stations = station.getAllStations()
-    assert isinstance(stations, dict)
-    known_vals = ('BIST', 'Stykkisholmur', '', 'Iceland', '65-05N', '022-44W')
-    assert stations['BIST'] == known_vals
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        stations = station.getAllStations()
+        assert isinstance(stations, dict)
+        known_vals = ('BIST', 'Stykkisholmur', '', 'Iceland', '65-05N', '022-44W')
+        assert stations['BIST'] == known_vals
 
 
 def test_getStationByID():
-    sta = station.getStationByID('KPDX')
-    assert isinstance(sta, station.WeatherStation)
-    assert sta.sta_id == 'KPDX'
-    assert sta.city == 'Portland, Portland International Airport'
-    assert sta.state == 'OR'
-    assert sta.country == 'United States'
-    assert sta.lat == '45-35-27N'
-    assert sta.lon == '122-36-01W'
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        sta = station.getStationByID('KPDX')
+        assert sta.sta_id == 'KPDX'
+        assert sta.city == 'Portland, Portland International Airport'
+        assert sta.state == 'OR'
+        assert sta.country == 'United States'
+        assert sta.lat == '45-35-27N'
+        assert sta.lon == '122-36-01W'
 
 
 @pytest.mark.parametrize('attribute', [
@@ -201,8 +205,8 @@ def test_WS_find_file_asos(sta, ts):
 
 
 def test_WS_set_cookies(sta):
-    assert isinstance(sta.asos, request.OpenerDirector)
-    assert isinstance(sta.wunderground, request.OpenerDirector)
+    assert isinstance(sta.asos, urllib.request.OpenerDirector)
+    assert isinstance(sta.wunderground, urllib.request.OpenerDirector)
 
 
 @pytest.mark.xfail
@@ -284,7 +288,7 @@ def test_attempt_download(sta, known_statuses):
 @pytest.mark.slow
 @pytest.mark.parametrize('src, datestr', [
     ('asos', '201201'),
-    pytest.mark.xfail(('wunderground', '20120101')),
+    pytest.param('wunderground', '20120101', marks=pytest.mark.xfail),
 ])
 def test_process_file(sta, src, datestr, known_statuses):
     tstamp = pandas.Timestamp('2012-01-01')
@@ -298,7 +302,7 @@ def test_process_file(sta, src, datestr, known_statuses):
 
 @pytest.mark.slow
 @pytest.mark.parametrize('src, has_dwpt', [
-    pytest.mark.xfail(('wunderground', True)),
+    pytest.param('wunderground', True, marks=pytest.mark.xfail),
     ('asos', True),
 ])
 def test_read_csv_XXXX(sta, ts, src, has_dwpt):
@@ -312,7 +316,7 @@ def test_read_csv_XXXX(sta, ts, src, has_dwpt):
 
 @pytest.mark.slow
 @pytest.mark.parametrize('gettername, has_dwpt', [
-    pytest.mark.xfail(('getWundergroundData', True)),
+    pytest.param('getWundergroundData', True, marks=pytest.mark.xfail),
     ('getASOSData', True),
 ])
 def test_getXXXData(sta, gettername, has_dwpt, start, end):

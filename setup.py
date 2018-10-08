@@ -33,5 +33,10 @@ if __name__ == '__main__':
             "Programming Language :: Python :: 3.6",
             "Topic :: Scientific/Engineering :: Atmospheric Science",
             "Topic :: Scientific/Engineering :: Visualization",
-        ]
+        ],
+        entry_points={
+            'console_scripts': [
+                'cloudside=cloudside.cli:main'
+            ]
+        }
     )
