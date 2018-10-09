@@ -1,4 +1,3 @@
-from pkg_resources import resource_filename
 from io import StringIO
 from textwrap import dedent
 import warnings
@@ -7,11 +6,10 @@ from matplotlib import figure
 import pandas
 
 import pytest
-import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
-from cloudside import station
 from cloudside import viz
+from .helpers import get_test_file
 
 
 IMG_OPTS = dict(
@@ -44,7 +42,7 @@ def _make_ts_fig():
 
 @pytest.fixture
 def test_data():
-    csvfile = resource_filename("cloudside.tests.data", 'data_for_viz_tests.csv')
+    csvfile = get_test_file('data_for_viz_tests.csv')
     df = pandas.read_csv(csvfile, parse_dates=True, index_col=0)
     return df
 

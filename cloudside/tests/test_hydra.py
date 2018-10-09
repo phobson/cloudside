@@ -3,16 +3,14 @@ from io import StringIO
 from textwrap import dedent
 import tempfile
 
-import numpy
 import pandas
 
 from unittest import mock
 import pytest
-import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from cloudside import hydra
-from .helpers import get_test_file, raises
+from .helpers import get_test_file
 
 
 @pytest.fixture

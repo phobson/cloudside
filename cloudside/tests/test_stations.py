@@ -1,6 +1,5 @@
 from datetime import datetime
 import os
-from pkg_resources import resource_filename
 import tempfile
 import urllib
 import warnings
@@ -12,10 +11,9 @@ import matplotlib.dates as mdates
 from unittest import mock
 import pytest
 import numpy.testing as nptest
-import pandas.util.testing as pdtest
 
 from cloudside import station
-from .helpers import get_test_file, raises
+from .helpers import raises
 
 
 class FakeClass(object):

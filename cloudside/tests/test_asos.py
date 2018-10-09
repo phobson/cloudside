@@ -1,6 +1,5 @@
 from datetime import datetime
 import pathlib
-from pkg_resources import resource_filename
 import tempfile
 import ftplib
 

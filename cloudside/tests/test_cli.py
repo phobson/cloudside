@@ -1,4 +1,4 @@
-from cloudside import cli, asos
+from cloudside import cli
 
 from unittest import mock
 from click.testing import CliRunner
