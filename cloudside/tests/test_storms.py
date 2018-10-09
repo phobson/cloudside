@@ -1,10 +1,7 @@
-import tempfile
-
 import numpy
 import pandas
 
 import pytest
-import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from cloudside import storms

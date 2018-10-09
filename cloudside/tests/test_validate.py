@@ -1,16 +1,10 @@
-from pkg_resources import resource_filename
-
 from matplotlib import figure
 from matplotlib import axes
 
 import pytest
 
 from cloudside import validate
-from .helpers import raises
-
-
-def getTestFile(filename):
-    return resource_filename("cloudside.tests.data", filename)
+from .helpers import raises, get_test_file
 
 
 def test_axes_object_invalid():
@@ -62,7 +56,7 @@ def test_step(step, error):
     ('doesnotexist', 'not there'),
 ])
 def test_file_status(filename, expected):
-    fn = getTestFile(filename)
+    fn = get_test_file(filename)
     validate.file_status(fn) == expected
 
 

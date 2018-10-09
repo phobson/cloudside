@@ -29,21 +29,33 @@ Basically I wanted a library that could do something like this:
 And so ``cloudside`` does that.
 After installation, you can also directly use it from the command line ::
 
-    $ cloudside get-data KPDX 2018-01-01 2018-09-30 me@mydomain.com
+    $ cloudside get-asos KPDX 2018-01-01 2018-09-30 me@mydomain.com
+
+You can also fetch data from Portland's Hydra Network of rain gauges:
+
+.. code:: python
+
+    import cloudside
+    data = cloudside.hydra.get_data('Beaumont')
+
+or from the command line ::
+
+    $ cloudside get-hydra Beaumont
+
 
 Basic History
 -------------
 
-`Tom Pollard <https://github.com/tomp/python-metar>`_ originally wrote ``python-metar`` to parse weather hourly reports as they were posted to the web.
+`Tom Pollard <https://github.com/python-metar/python-metar>`_ originally wrote ``python-metar`` to parse weather hourly reports as they were posted to the web.
 Building on top of his original work, ``cloudside`` tries to provide an easy way to download and visualize data from ASOS.
 
 You can download ``cloudside`` from the repoository from Github_.
 
-.. _Github: https://github.com/phobson/cloudside
+.. _Github: https://github.com/Geosyntec/cloudside
 
 Dependencies
 ------------
-* Python 3.5 or greater
+* Python 3.6 or greater
 * recent versions of pandas, matplotlib
 * python-metar to actually parse the metar codes
 * Jupyter for running notebook-based examples (optional)
@@ -58,26 +70,19 @@ get you started: ::
 
 Followed by: ::
 
-    source activate cloudside # (omit "source" on Windows)
+    conda activate cloudside
+    conda install metar --channel=conda-forge
 
 Installation
 ------------
 
 * Activate your ``conda`` environment;
-* Install python-metar from Github
-* Clone my fork from Github;
-* Change to that resulting directory;
-* Install via pip; and
-* Back out of that directory to use
+* Install via pip and git; and
 
 ::
 
-    source activate cloudside # (omit "source" on Windows)
-    pip install git+https://github.com/tomp/python-metar.git
-    git clone https://github.com/phobson/cloudside.git
-    cd cloudside
-    pip install .
-    cd ../..
+    conda activate cloudside
+    pip install git+https://github.com/Geosyntec/cloudside.git
 
 
 Testing
@@ -90,10 +95,9 @@ Tests are run via ``pytest``. Run them all with: ::
 
 Documentation
 -------------
-We have `HTML docs built with sphinx <http://phobson.github.io/cloudside/>`_.
+We have `HTML docs built with sphinx <http://geosyntec.github.io/cloudside/>`_.
 
 Development status
 ------------------
-This is sort of a weekend hack.
-But I keep adding stuff to it.
+This is sort of a weekend hack, but I keep adding stuff to it.
 So, uh, *caveat emptor*, I guess.

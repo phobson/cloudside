@@ -6,7 +6,7 @@ except ImportError:
     def tqdm(x):
         return x
 
-from cloudside import asos
+from cloudside import asos, hydra
 
 
 @click.group()
@@ -21,8 +21,16 @@ def main():
 @click.argument('email')
 @click.option('--folder')
 @click.option('--force', is_flag=True)
-def get_data(station, startdate, enddate, email, folder, force):
+def get_asos(station, startdate, enddate, email, folder, force):
     folder = '.' or folder
     return asos.get_data(station, startdate, enddate, email, folder=folder,
-                         raw_folder='01-raw', force_download=force,
-                         pbar_fxn=tqdm)
+                         force_download=force, pbar_fxn=tqdm)
+
+
+@main.command()
+@click.argument('station')
+@click.option('--folder')
+@click.option('--force', is_flag=True)
+def get_hydra(station, folder, force):
+    folder = '.' or folder
+    return hydra.get_data(station, folder=folder, force_download=force)

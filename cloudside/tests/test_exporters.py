@@ -1,25 +1,18 @@
 import os
-import sys
 import tempfile
-import datetime as dt
 
 import pandas
 
 import pytest
 import pandas.util.testing as pdtest
 
-from cloudside import station
 from cloudside import exporters
-
-
-def getTestFile(filename):
-    current_dir, _ = os.path.split(__file__)
-    return os.path.join(current_dir, 'data', filename)
+from .helpers import get_test_file
 
 
 @pytest.fixture
 def fivemin():
-    return pandas.read_csv(getTestFile('data_for_tests.csv'), parse_dates=True, index_col=0)
+    return pandas.read_csv(get_test_file('data_for_tests.csv'), parse_dates=True, index_col=0)
 
 
 @pytest.mark.parametrize(('dropzeros', 'shape'), [
@@ -68,12 +61,12 @@ def test_dumpSWMM5Format_results(fivemin, freq, expected_file):
         )
         pdtest.assert_frame_equal(
             data.reset_index(drop=True),
-            pandas.read_table(getTestFile(expected_file), sep='\t')
+            pandas.read_table(get_test_file(expected_file), sep='\t')
         )
 
 
 def test_dumpNCDCFormat(fivemin):
-    knownfile = getTestFile('known_hourly_NCDC.dat')
+    knownfile = get_test_file('known_hourly_NCDC.dat')
     with tempfile.TemporaryDirectory() as datadir:
         outfile = os.path.join(datadir, 'test_dumpNCDC.dat')
         data = exporters.NCDCFormat(

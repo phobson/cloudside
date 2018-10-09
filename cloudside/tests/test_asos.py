@@ -1,6 +1,5 @@
 from datetime import datetime
 import pathlib
-from pkg_resources import resource_filename
 import tempfile
 import ftplib
 
@@ -12,7 +11,7 @@ import pytest
 import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
-from cloudside import asos, station
+from cloudside import asos
 from .helpers import get_test_file, raises
 
 
@@ -30,8 +29,37 @@ def fake_rain_data():
     return pandas.Series(rain_raw, index=daterange)
 
 
+@pytest.fixture
+def asos_metar():
+    teststring = (
+        '24229KPDX PDX20170108090014901/08/17 09:00:31  5-MIN KPDX 081700Z '
+        '10023G35KT 7SM -FZRA OVC065 00/M01 A2968 250 96 -1400 080/23G35 RMK '
+        'AO2 PK WND 10035/1654 P0005 I1000 T00001006'
+    )
+    return asos.MetarParser(teststring, strict=False)
+
+
 def retr_error(cmd, action):
     raise ftplib.error_perm
+
+
+def test_MetarParser_datetime(asos_metar):
+    assert asos_metar.datetime == datetime(2017, 1, 8, 9)
+
+
+def test_MetarParser_asos_dict(asos_metar):
+    result = asos_metar.asos_dict()
+    expected = {
+        'datetime': datetime(2017, 1, 8, 9),
+        'raw_precipitation': 0.05,
+        'temperature': 0.0,
+        'dew_point': -0.6,
+        'wind_speed': 23.0,
+        'wind_direction': 100,
+        'air_pressure': 250.0,
+        'sky_cover': 1.0,
+    }
+    assert result == expected
 
 
 @pytest.mark.parametrize(('exists', 'force', 'call_count'), [
