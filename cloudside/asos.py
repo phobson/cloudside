@@ -318,8 +318,8 @@ def get_data(station_id, startdate, stopdate, email, folder='.',
     raw_folder : pathlib.Path
         Directory on the local file system where the data should be saved
     force_download : bool (default is False)
-        See to the True to force re-downloading of ASOS data that already
-        exist
+        See to the True to force re-downloading of data that already exists
+        in the folder specified structure.
     pbar_fxn : callable, optional
         A tqdm-like progress bar function such as `tqdm.tqdm` or
         `tqdm.tqdm_notebook`.
