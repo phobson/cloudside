@@ -1,14 +1,14 @@
 # std lib stuff
 import datetime
 import logging
+import warnings
 from ftplib import FTP, error_perm
 from pathlib import Path
 
 import numpy
 import pandas
-from metar.Metar import ParserError
+from metar import Metar, Datatypes
 
-from . station import MetarParser
 from . import validate
 
 
@@ -25,6 +25,81 @@ __all__ = [
 HOURLY = pandas.offsets.Hour(1)
 MONTHLY = pandas.offsets.MonthBegin(1)
 FIVEMIN = pandas.offsets.Minute(5)
+
+
+def value_or_not(obs_attr):
+    if obs_attr is None:
+        return numpy.nan
+    else:
+        return obs_attr.value()
+
+
+class MetarParser(Metar.Metar):
+    def __init__(self, *args, **kwargs):
+        self._datetime = None
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            super().__init__(*args, **kwargs)
+            if len(w) > 1:
+                for _w in w:
+                    _logger.info(_w.message)
+
+    def _unparsed_group_handler(self, d):
+        """
+        Handle otherwise unparseable main-body groups.
+        """
+        self._unparsed_groups.append(d['group'])
+
+    @property
+    def datetime(self):
+        '''get date/time of asos reading'''
+        if self._datetime is None:
+            yr = int(self.code[13:17])   # year
+            mo = int(self.code[17:19])   # month
+            da = int(self.code[19:21])   # day
+            hr = int(self.code[37:39])   # hour
+            mi = int(self.code[40:42])   # minute
+
+            self._datetime = datetime.datetime(yr, mo, da, hr, mi)
+
+        return self._datetime
+
+    def asos_dict(self):
+        return {
+            'datetime': self.datetime,
+            'raw_precipitation': value_or_not(self.precip_1hr),
+            'temperature': value_or_not(self.temp),
+            'dew_point': value_or_not(self.dewpt),
+            'wind_speed': value_or_not(self.wind_speed),
+            'wind_direction': value_or_not(self.wind_dir),
+            'air_pressure': value_or_not(self.press),
+            'sky_cover': _process_sky_cover(self)
+        }
+
+
+def _process_sky_cover(obs):
+    coverdict = {
+        'CLR': 0.0000,
+        'SKC': 0.0000,
+        'NSC': 0.0000,
+        'NCD': 0.0000,
+        'FEW': 0.1785,
+        'SCT': 0.4375,
+        'BKN': 0.7500,
+        'VV': 0.9900,
+        'OVC': 1.0000
+    }
+    coverlist = []
+    for sky in obs.sky:
+        coverval = coverdict[sky[0]]
+        coverlist.append(coverval)
+
+    if len(coverlist) > 0:
+        cover = numpy.max(coverlist)
+    else:
+        cover = 'NA'
+
+    return cover
 
 
 def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
@@ -206,7 +281,7 @@ def parse_file(filepath, new_precipcol='precipitation'):
     def _do_parse(x):
         try:
             return MetarParser(x, strict=False).asos_dict()
-        except ParserError:
+        except Metar.ParserError:
             return {}
 
     with filepath.open('r') as rawf:
