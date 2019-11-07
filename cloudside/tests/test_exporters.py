@@ -132,23 +132,39 @@ def test__write(parsed_obs, expected):
     [
         (
             "HPD04511406HPCPHI19480700010040100000000 1300000000M 2400000000M 2500000000I ",
-            [
-                "045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n",
-                "045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n",
-                "045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n",
-            ],
+            (
+                "045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n"
+                "045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n"
+                "045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n"
+            ),
         ),
         (
             "HPD04511406HPCPHI19480700010040100000000 0800000185A 0900099999M 1300000000M 2400000000M 2500000000I ",
-            [
-                "045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n",
-                "045114,HPD,06HPCP,HI,1948-07-01 07:00,1.85,A\n",
-                "045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n",
-                "045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n",
-            ],
+            (
+                "045114,HPD,06HPCP,HI,1948-07-01 00:00,0.00,\n"
+                "045114,HPD,06HPCP,HI,1948-07-01 07:00,1.85,A\n"
+                "045114,HPD,06HPCP,HI,1948-07-01 12:00,0.00,M\n"
+                "045114,HPD,06HPCP,HI,1948-07-01 23:00,0.00,M\n"
+            ),
         ),
     ],
 )
 def test__obs_from_row(row, expected):
     result = exporters._obs_from_row(row)
     assert result == expected
+
+
+def test_NCDCtoCSV():
+    inputfile = get_test_file("sample_NCDC_data.NCD")
+    knownfile = get_test_file("known_CSV_from_NCDC.csv")
+    with tempfile.TemporaryDirectory() as datadir:
+        outfile = os.path.join(datadir, "test_out.dat")
+        exporters.NCDCtoCSV(inputfile, outfile)
+
+        with open(knownfile, "r") as f:
+            known_data = f.read()
+
+        with open(outfile, "r") as f:
+            test_data = f.read()
+
+        assert known_data == test_data
