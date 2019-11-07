@@ -2,8 +2,9 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption("--runslow", action="store_true",
-                     default=False, help="run slow tests")
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
 
 
 def pytest_collection_modifyitems(config, items):

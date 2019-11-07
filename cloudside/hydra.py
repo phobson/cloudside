@@ -7,9 +7,9 @@ from cloudside import validate
 
 
 def _fetch_file(station_id, raw_folder, force_download=False):
-    sta = station.lower()
-    url = 'https://or.water.usgs.gov/non-usgs/bes/{}.rain'.format(sta)
-    dst_path = Path(raw_folder).joinpath(sta + '.txt')
+    sta = station_id.lower()
+    url = "https://or.water.usgs.gov/non-usgs/bes/{}.rain".format(sta)
+    dst_path = Path(raw_folder).joinpath(sta + ".txt")
     dst_path.write_text(requests.get(url).text)
     return dst_path
 
@@ -31,32 +31,36 @@ def parse_file(filepath):
     """
 
     read_opts = {
-        'sep': '\s+',
-        'header': None,
-        'parse_dates': ['Date'],
-        'na_values': ['-'],
+        "sep": "\s+",
+        "header": None,
+        "parse_dates": ["Date"],
+        "na_values": ["-"],
     }
 
-    with Path(filepath).open('r') as fr:
+    with Path(filepath).open("r") as fr:
         for line in fr:
-            if line.strip().startswith('Daily'):
+            if line.strip().startswith("Daily"):
                 headers = next(fr).strip().split()
                 _ = next(fr)
                 df = (
                     pandas.read_table(fr, names=headers, **read_opts)
-                        .drop(columns=['Total'])
-                        .melt(id_vars=['Date'], value_name=filepath.stem, var_name='Hour')
-                        .assign(Hour=lambda df: df['Hour'].astype(int).map(lambda x: pandas.Timedelta(x, unit='h')))
-                        .assign(datetime=lambda df: df['Date'] + df['Hour'])
-                        .set_index('datetime')
-                        .sort_index()
-                        .loc[:, [filepath.stem]]
-                        .div(100)
+                    .drop(columns=["Total"])
+                    .melt(id_vars=["Date"], value_name=filepath.stem, var_name="Hour")
+                    .assign(
+                        Hour=lambda df: df["Hour"]
+                        .astype(int)
+                        .map(lambda x: pandas.Timedelta(x, unit="h"))
+                    )
+                    .assign(datetime=lambda df: df["Date"] + df["Hour"])
+                    .set_index("datetime")
+                    .sort_index()
+                    .loc[:, [filepath.stem]]
+                    .div(100)
                 )
     return df
 
 
-def get_data(station_id, folder='.', raw_folder='01-raw', force_download=False):
+def get_data(station_id, folder=".", raw_folder="01-raw", force_download=False):
     """ Download and parse full records from Portland's Hydra Network
 
     Parameters

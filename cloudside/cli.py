@@ -3,8 +3,10 @@ import click
 try:
     from tqdm import tqdm
 except ImportError:
+
     def tqdm(x):
         return x
+
 
 from cloudside import asos, hydra
 

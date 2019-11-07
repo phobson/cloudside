@@ -7,13 +7,7 @@ import pandas
 from . import validate
 
 
-__all__ = [
-    'hyetograph',
-    'rainClock',
-    'windRose',
-    'psychromograph',
-    'temperaturePlot'
-]
+__all__ = ["hyetograph", "rainClock", "windRose", "psychromograph", "temperaturePlot"]
 
 DEEPCOLORS = [
     (0.29803921568627451, 0.44705882352941179, 0.69019607843137254),
@@ -21,40 +15,42 @@ DEEPCOLORS = [
     (0.7686274509803922, 0.30588235294117649, 0.32156862745098042),
     (0.50588235294117645, 0.44705882352941179, 0.69803921568627447),
     (0.80000000000000004, 0.72549019607843135, 0.45490196078431372),
-    (0.39215686274509803, 0.70980392156862748, 0.80392156862745101)
+    (0.39215686274509803, 0.70980392156862748, 0.80392156862745101),
 ]
 
 
-def _resampler(dataframe, col, freq, how='sum', fillna=None):
+def _resampler(dataframe, col, freq, how="sum", fillna=None):
     rules = {
-        '5min': ('5Min', 'line'),
-        '5 min': ('5Min', 'line'),
-        '5-min': ('5Min', 'line'),
-        '5 minute': ('5Min', 'line'),
-        '5-minute': ('5Min', 'line'),
-        '15min': ('15Min', 'line'),
-        '15 min': ('15Min', 'line'),
-        '15-min': ('15Min', 'line'),
-        '15 minute': ('15Min', 'line'),
-        '15-minute': ('15Min', 'line'),
-        '30min': ('30Min', 'line'),
-        '30 min': ('30Min', 'line'),
-        '30-min': ('30Min', 'line'),
-        '30 minute': ('30Min', 'line'),
-        '30-minute': ('30Min', 'line'),
-        'hour': ('H', 'line'),
-        'hourly': ('H', 'line'),
-        'day': ('D', 'line'),
-        'daily': ('D', 'line'),
-        'week': ('W', 'line'),
-        'weekly': ('W', 'line'),
-        'month': ('M', 'line'),
-        'monthly': ('M', 'line')
+        "5min": ("5Min", "line"),
+        "5 min": ("5Min", "line"),
+        "5-min": ("5Min", "line"),
+        "5 minute": ("5Min", "line"),
+        "5-minute": ("5Min", "line"),
+        "15min": ("15Min", "line"),
+        "15 min": ("15Min", "line"),
+        "15-min": ("15Min", "line"),
+        "15 minute": ("15Min", "line"),
+        "15-minute": ("15Min", "line"),
+        "30min": ("30Min", "line"),
+        "30 min": ("30Min", "line"),
+        "30-min": ("30Min", "line"),
+        "30 minute": ("30Min", "line"),
+        "30-minute": ("30Min", "line"),
+        "hour": ("H", "line"),
+        "hourly": ("H", "line"),
+        "day": ("D", "line"),
+        "daily": ("D", "line"),
+        "week": ("W", "line"),
+        "weekly": ("W", "line"),
+        "month": ("M", "line"),
+        "monthly": ("M", "line"),
     }
 
     if freq not in list(rules.keys()):
-        m = ("freq should be in ['5-min', '15-min', 'hourly', 'daily',"
-             "'weekly', 'monthly']")
+        m = (
+            "freq should be in ['5-min', '15-min', 'hourly', 'daily',"
+            "'weekly', 'monthly']"
+        )
         raise ValueError(m)
 
     rule = rules[freq.lower()][0]
@@ -66,26 +62,34 @@ def _resampler(dataframe, col, freq, how='sum', fillna=None):
     return data, rule, plotkind
 
 
-def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
-             ax=None, downward=False, fillna=None):
+def _plotter(
+    dataframe,
+    col,
+    ylabel,
+    freq="hourly",
+    how="sum",
+    ax=None,
+    downward=False,
+    fillna=None,
+):
 
     if not hasattr(dataframe, col):
-        raise ValueError('input `dataframe` must have a `%s` column' % col)
+        raise ValueError("input `dataframe` must have a `%s` column" % col)
 
     fig, ax = validate.axes_object(ax)
 
     data, rule, plotkind = _resampler(dataframe, col, freq=freq, how=how)
 
     data.plot(ax=ax, kind=plotkind)
-    if rule == 'A':
-        xformat = DateFormatter('%Y')
+    if rule == "A":
+        xformat = DateFormatter("%Y")
         ax.xaxis.set_major_formatter(xformat)
-    elif rule == 'M':
-        xformat = DateFormatter('%Y-%m')
+    elif rule == "M":
+        xformat = DateFormatter("%Y-%m")
         ax.xaxis.set_major_formatter(xformat)
 
-    ax.tick_params(axis='x', labelsize=8)
-    ax.set_xlabel('Date')
+    ax.tick_params(axis="x", labelsize=8)
+    ax.set_xlabel("Date")
     ax.set_ylabel(ylabel)
     if downward:
         ax.invert_yaxis()
@@ -93,8 +97,7 @@ def _plotter(dataframe, col, ylabel, freq='hourly', how='sum',
     return fig
 
 
-def hyetograph(dataframe, col='precipitation', freq='hourly', ax=None,
-               downward=True):
+def hyetograph(dataframe, col="precipitation", freq="hourly", ax=None, downward=True):
     """ Plot showing rainfall depth over time.
 
     Parameters
@@ -120,14 +123,14 @@ def hyetograph(dataframe, col='precipitation', freq='hourly', ax=None,
 
     """
 
-    ylabel = '%s Rainfall Depth (in)' % freq.title()
-    fig = _plotter(dataframe, col, ylabel, freq=freq, fillna=0,
-                   how='sum', ax=ax, downward=downward)
+    ylabel = "%s Rainfall Depth (in)" % freq.title()
+    fig = _plotter(
+        dataframe, col, ylabel, freq=freq, fillna=0, how="sum", ax=ax, downward=downward
+    )
     return fig
 
 
-def psychromograph(dataframe, col='air_pressure', freq='hourly', how='mean',
-                   ax=None):
+def psychromograph(dataframe, col="air_pressure", freq="hourly", how="mean", ax=None):
     """ Plot showing barometric pressure over time.
 
     Parameters
@@ -152,14 +155,12 @@ def psychromograph(dataframe, col='air_pressure', freq='hourly', how='mean',
 
     """
 
-    ylabel = '%s Barometric Pressure (in Hg)' % freq.title()
-    fig = _plotter(dataframe, col, ylabel, freq=freq,
-                   how=how, ax=ax)
+    ylabel = "%s Barometric Pressure (in Hg)" % freq.title()
+    fig = _plotter(dataframe, col, ylabel, freq=freq, how=how, ax=ax)
     return fig
 
 
-def temperature(dataframe, col='temperature', freq='hourly', how='mean',
-                ax=None):
+def temperature(dataframe, col="temperature", freq="hourly", how="mean", ax=None):
     """ Plot showing temperature over time.
 
     Parameters
@@ -184,13 +185,12 @@ def temperature(dataframe, col='temperature', freq='hourly', how='mean',
 
     """
 
-    ylabel = u'%s Temperature (\xB0C)' % freq.title()
-    fig = _plotter(dataframe, col, ylabel, freq=freq,
-                   how=how, ax=ax)
+    ylabel = u"%s Temperature (\xB0C)" % freq.title()
+    fig = _plotter(dataframe, col, ylabel, freq=freq, how=how, ax=ax)
     return fig
 
 
-def rain_clock(dataframe, raincol='precip'):
+def rain_clock(dataframe, raincol="precip"):
     """ Mathematically dubious representation of the likelihood of rain at
     at any hour given that will rain.
 
@@ -208,7 +208,7 @@ def rain_clock(dataframe, raincol='precip'):
     """
 
     if not hasattr(dataframe, raincol):
-        raise ValueError('input `dataframe` must have a `%s` column' % raincol)
+        raise ValueError("input `dataframe` must have a `%s` column" % raincol)
 
     rainfall = dataframe[raincol]
     am_hours = numpy.arange(0, 12)
@@ -216,7 +216,7 @@ def rain_clock(dataframe, raincol='precip'):
     rainhours = rainfall.index.hour
     rain_by_hour = []
     for hr in numpy.arange(24):
-        selector = (rainhours == hr)
+        selector = rainhours == hr
         total_depth = rainfall[selector].sum()
         num_obervations = rainfall[selector].count()
         rain_by_hour.append(total_depth / num_obervations)
@@ -227,15 +227,27 @@ def rain_clock(dataframe, raincol='precip'):
     ax1 = fig.add_subplot(1, 2, 1, polar=True)
     ax2 = fig.add_subplot(1, 2, 2, polar=True)
     theta = numpy.arange(0.0, 2 * numpy.pi, 2 * numpy.pi / 12)
-    ax1.bar(theta, rain_by_hour[:12], bar_width, align='center',
-        color='DodgerBlue', linewidth=0.5)
-    ax2.bar(theta, rain_by_hour[12:], bar_width, align='center',
-        color='Crimson', linewidth=0.5)
-    ax1.set_title('AM Hours')
-    ax2.set_title('PM Hours')
+    ax1.bar(
+        theta,
+        rain_by_hour[:12],
+        bar_width,
+        align="center",
+        color="DodgerBlue",
+        linewidth=0.5,
+    )
+    ax2.bar(
+        theta,
+        rain_by_hour[12:],
+        bar_width,
+        align="center",
+        color="Crimson",
+        linewidth=0.5,
+    )
+    ax1.set_title("AM Hours")
+    ax2.set_title("PM Hours")
     for ax in [ax1, ax2]:
         ax.set_theta_zero_location("N")
-        ax.set_theta_direction('clockwise')
+        ax.set_theta_direction("clockwise")
         ax.set_xticks(theta)
         ax.set_xticklabels(am_hours)
         ax.set_yticklabels([])
@@ -245,16 +257,16 @@ def rain_clock(dataframe, raincol='precip'):
 
 def _speed_labels(bins, units=None):
     if units is None:
-        units = ''
+        units = ""
 
     labels = []
     for left, right in zip(bins[:-1], bins[1:]):
         if left == bins[0]:
-            labels.append('calm'.format(right))
+            labels.append("calm".format(right))
         elif numpy.isinf(right):
-            labels.append('>{} {}'.format(left, units))
+            labels.append(">{} {}".format(left, units))
         else:
-            labels.append('{} - {} {}'.format(left, right, units))
+            labels.append("{} - {} {}".format(left, right, units))
 
     return list(labels)
 
@@ -266,12 +278,21 @@ def _dir_degrees_to_radins(directions):
     return barDir, barWidth
 
 
-def _compute_rose(dataframe, magcol, dircol,
-                  spd_bins=None, spd_labels=None, spd_units=None,
-                  calmspeed=0.1, dir_bins=None, bin_width=15,
-                  dir_labels=None):
+def _compute_rose(
+    dataframe,
+    magcol,
+    dircol,
+    spd_bins=None,
+    spd_labels=None,
+    spd_units=None,
+    calmspeed=0.1,
+    dir_bins=None,
+    bin_width=15,
+    dir_labels=None,
+    total_count=None,
+):
 
-    total_count = dataframe.shape[0]
+    total_count = total_count or dataframe.shape[0]
     calm_count = dataframe[dataframe[magcol] <= calmspeed].shape[0]
 
     if spd_bins is None:
@@ -287,17 +308,24 @@ def _compute_rose(dataframe, magcol, dircol,
         dir_labels = (dir_bins[:-1] + dir_bins[1:]) / 2
 
     raw_rose = (
-        dataframe
-            .assign(Spd_bins=pandas.cut(dataframe[magcol], bins=spd_bins, labels=spd_labels, right=True))
-            .assign(Dir_bins=pandas.cut(dataframe[dircol], bins=dir_bins, labels=dir_labels, right=False))
-            .replace({'Dir_bins': {360: 0}})
-            .groupby(by=['Spd_bins', 'Dir_bins'])
-            .size()
-            .unstack(level='Spd_bins')
-            .fillna(0)
-            .assign(calm=lambda df: calm_count / df.shape[0])
-            .sort_index(axis=1)
-            .applymap(lambda x: x / total_count)
+        dataframe.assign(
+            Spd_bins=pandas.cut(
+                dataframe[magcol], bins=spd_bins, labels=spd_labels, right=True
+            )
+        )
+        .assign(
+            Dir_bins=pandas.cut(
+                dataframe[dircol], bins=dir_bins, labels=dir_labels, right=False
+            )
+        )
+        .replace({"Dir_bins": {360: 0}})
+        .groupby(by=["Spd_bins", "Dir_bins"])
+        .size()
+        .unstack(level="Spd_bins")
+        .fillna(0)
+        .assign(calm=lambda df: calm_count / df.shape[0])
+        .sort_index(axis=1)
+        .applymap(lambda x: x / total_count)
     )
 
     # short data records might not be able to fill out all of the speed
@@ -306,12 +334,14 @@ def _compute_rose(dataframe, magcol, dircol,
     _rows = pandas.CategoricalIndex(
         data=raw_rose.index.categories.values,
         categories=raw_rose.index.categories,
-        ordered=True, name='Dir_bins',
+        ordered=True,
+        name="Dir_bins",
     )
     _cols = pandas.CategoricalIndex(
         data=raw_rose.columns.categories.values,
         categories=raw_rose.columns.categories,
-        ordered=True, name='Spd_bins',
+        ordered=True,
+        name="Spd_bins",
     )
 
     # .add returns NA where both elements don't exists, so we
@@ -319,58 +349,71 @@ def _compute_rose(dataframe, magcol, dircol,
     return raw_rose.reindex(index=_rows, columns=_cols, fill_value=0.0)
 
 
-def _draw_rose(rose, ax, palette=None, show_calm=True,
-               show_legend=True, **other_opts):
+def _draw_rose(rose, ax, palette=None, show_calm=True, show_legend=True, **other_opts):
     dir_degrees = numpy.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
     palette = palette or DEEPCOLORS
 
     fig = ax.figure
 
-    ax.set_theta_direction('clockwise')
-    ax.set_theta_zero_location('N')
+    ax.set_theta_direction("clockwise")
+    ax.set_theta_zero_location("N")
     ax.yaxis.set_major_formatter(FuncFormatter(_pct_fmt))
 
     for n, (c1, c2) in enumerate(zip(rose.columns[:-1], rose.columns[1:])):
         if n == 0 and show_calm:
             # first column only
-            ax.bar(dir_rads, rose[c1].values,
-                   width=dir_width,
-                   color=palette[0],
-                   edgecolor='none',
-                   label=c1,
-                   linewidth=0,
-                   align='center',
-                   **other_opts)
+            ax.bar(
+                dir_rads,
+                rose[c1].values,
+                width=dir_width,
+                color=palette[0],
+                edgecolor="none",
+                label=c1,
+                linewidth=0,
+                align="center",
+                **other_opts
+            )
 
         # all other columns
-        ax.bar(dir_rads, rose[c2].values,
-               width=dir_width,
-               bottom=rose.cumsum(axis=1)[c1].values,
-               color=palette[n + 1],
-               edgecolor='none',
-               label=c2,
-               linewidth=0,
-               align='center',
-               **other_opts)
+        ax.bar(
+            dir_rads,
+            rose[c2].values,
+            width=dir_width,
+            bottom=rose.cumsum(axis=1)[c1].values,
+            color=palette[n + 1],
+            edgecolor="none",
+            label=c2,
+            linewidth=0,
+            align="center",
+            **other_opts
+        )
 
     if show_legend:
-        leg = ax.legend(
-            loc=(0.9, -0.1),
-            ncol=1,
-            fontsize=8,
-            frameon=False
-        )
-    xtl = ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])
+        leg = ax.legend(loc=(0.9, -0.1), ncol=1, fontsize=8, frameon=False)
+    xtl = ax.set_xticklabels(["N", "NE", "E", "SE", "S", "SW", "W", "NW"])
 
     return fig
 
 
-def rose(dataframe, magcol, dircol,
-         spd_bins=None, spd_labels=None, spd_units=None,
-         calmspeed=0.1, dir_bins=None, bin_width=15,
-         dir_labels=None, palette=None, show_legend=True,
-         show_calm=True, ax=None, **bar_opts):
+def rose(
+    dataframe,
+    magcol,
+    dircol,
+    spd_bins=None,
+    spd_labels=None,
+    spd_units=None,
+    calmspeed=0.1,
+    dir_bins=None,
+    bin_width=15,
+    dir_labels=None,
+    palette=None,
+    show_legend=True,
+    show_calm=True,
+    ax=None,
+    total_count=None,
+    **bar_opts
+):
     """ Draw a rose diagram
 
     Parameters
@@ -408,6 +451,9 @@ def rose(dataframe, magcol, dircol,
     ax : matplotlib.Axes object, optional
         The Axes on which the plot will be placed. If not provided,
         a new Figure and Axes will be created.
+    total_count = int (optional)
+        Defaults to the number of rows in the dataframe. Used to normalize the
+        counts of the binned values to a percetage of the total.
 
     Other Parameters
     ----------------
@@ -435,27 +481,40 @@ def rose(dataframe, magcol, dircol,
 
     """
 
-    rose = _compute_rose(dataframe, magcol=magcol, dircol=dircol,
-                         spd_bins=spd_bins, spd_labels=spd_labels,
-                         spd_units=spd_units, calmspeed=calmspeed,
-                         bin_width=bin_width)
+    rose = _compute_rose(
+        dataframe,
+        magcol=magcol,
+        dircol=dircol,
+        spd_bins=spd_bins,
+        spd_labels=spd_labels,
+        spd_units=spd_units,
+        calmspeed=calmspeed,
+        bin_width=bin_width,
+        total_count=total_count,
+    )
 
-    fig = _draw_rose(rose, ax=ax, palette=palette, show_legend=show_legend,
-                     show_calm=show_calm, **bar_opts)
+    fig = _draw_rose(
+        rose,
+        ax=ax,
+        palette=palette,
+        show_legend=show_legend,
+        show_calm=show_calm,
+        **bar_opts
+    )
     return fig, rose
 
 
 @numpy.deprecate
-def windRose(dataframe, spdcol='wind_speed', dircol='wind_dir', **kwargs):
+def windRose(dataframe, spdcol="wind_speed", dircol="wind_dir", **kwargs):
     return rose(dataframe, spdcol, dircol, **kwargs)
 
 
 def _pct_fmt(x, pos=0):
-    return '%0.1f%%' % (100 * x)
+    return "%0.1f%%" % (100 * x)
 
 
 def _convert_dir_to_left_radian(directions):
     N = directions.shape[0]
-    barDir = (directions * numpy.pi / 180.) - (numpy.pi / N)
+    barDir = (directions * numpy.pi / 180.0) - (numpy.pi / N)
     barWidth = [2 * numpy.pi / N] * N
     return barDir, barWidth

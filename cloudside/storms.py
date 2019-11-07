@@ -24,14 +24,22 @@ def _wet_first_row(df, wetcol, diffcol):
 def _wet_window_diff(is_wet, ie_periods):
     return (
         is_wet.rolling(int(ie_periods), min_periods=1)
-              .apply(lambda window: window.any(), raw=False)
-              .diff()
+        .apply(lambda window: window.any(), raw=False)
+        .diff()
     )
 
 
-def parse_record(data, intereventHours, outputfreqMinutes, precipcol=None,
-                 inflowcol=None, outflowcol=None, baseflowcol=None,
-                 stormcol='storm', debug=False):
+def parse_record(
+    data,
+    intereventHours,
+    outputfreqMinutes,
+    precipcol=None,
+    inflowcol=None,
+    outflowcol=None,
+    baseflowcol=None,
+    stormcol="storm",
+    debug=False,
+):
     """Parses the hydrologic data into distinct storms.
 
     In this context, a storm is defined as starting whenever the
@@ -77,19 +85,19 @@ def parse_record(data, intereventHours, outputfreqMinutes, precipcol=None,
 
     # pull out the rain and flow data
     if precipcol is None:
-        precipcol = 'precip'
+        precipcol = "precip"
         data.loc[:, precipcol] = numpy.nan
 
     if inflowcol is None:
-        inflowcol = 'inflow'
+        inflowcol = "inflow"
         data.loc[:, inflowcol] = numpy.nan
 
     if outflowcol is None:
-        outflowcol = 'outflow'
+        outflowcol = "outflow"
         data.loc[:, outflowcol] = numpy.nan
 
     if baseflowcol is None:
-        baseflowcol = 'baseflow'
+        baseflowcol = "baseflow"
         data.loc[:, baseflowcol] = False
 
     # bool column where True means there's rain or flow of some kind
@@ -100,7 +108,7 @@ def parse_record(data, intereventHours, outputfreqMinutes, precipcol=None,
         precipcol: numpy.sum,
         inflowcol: numpy.mean,
         outflowcol: numpy.mean,
-        baseflowcol: numpy.any
+        baseflowcol: numpy.any,
     }
 
     freq = pandas.offsets.Minute(outputfreqMinutes)
@@ -112,22 +120,28 @@ def parse_record(data, intereventHours, outputfreqMinutes, precipcol=None,
     # Stack Overflow: http://tinyurl.com/lsjkr9x
     res = (
         data.resample(freq)
-            .agg(agg_dict)
-            .loc[:, lambda df: df.columns.isin(cols_to_use)]
-            .assign(__wet=lambda df: numpy.any(df[water_columns] > 0, axis=1) & ~df[baseflowcol])
-            .assign(__windiff=lambda df: _wet_window_diff(df['__wet'], ie_periods))
-            .pipe(_wet_first_row, '__wet', '__windiff')
-            .assign(__event_start=lambda df: df['__windiff'] == 1)
-            .assign(__event_end=lambda df: df['__windiff'].shift(-1 * ie_periods) == -1)
-            .assign(__storm=lambda df: df['__event_start'].cumsum())
-            .assign(**{stormcol: lambda df: numpy.where(
-                df['__storm'] == df['__event_end'].shift(2).cumsum(),
-                0,  # inter-event periods marked zero
-                df['__storm']  # actual events keep their number
-            )})
+        .agg(agg_dict)
+        .loc[:, lambda df: df.columns.isin(cols_to_use)]
+        .assign(
+            __wet=lambda df: numpy.any(df[water_columns] > 0, axis=1) & ~df[baseflowcol]
+        )
+        .assign(__windiff=lambda df: _wet_window_diff(df["__wet"], ie_periods))
+        .pipe(_wet_first_row, "__wet", "__windiff")
+        .assign(__event_start=lambda df: df["__windiff"] == 1)
+        .assign(__event_end=lambda df: df["__windiff"].shift(-1 * ie_periods) == -1)
+        .assign(__storm=lambda df: df["__event_start"].cumsum())
+        .assign(
+            **{
+                stormcol: lambda df: numpy.where(
+                    df["__storm"] == df["__event_end"].shift(2).cumsum(),
+                    0,  # inter-event periods marked zero
+                    df["__storm"],  # actual events keep their number
+                )
+            }
+        )
     )
 
     if not debug:
-        res = res.loc[:, res.columns.map(lambda c: not c.startswith('__'))]
+        res = res.loc[:, res.columns.map(lambda c: not c.startswith("__"))]
 
     return res
