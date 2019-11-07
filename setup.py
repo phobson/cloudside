@@ -1,16 +1,15 @@
-
 import os
 import sys
 from setuptools import setup, find_packages
 
 PACKAGE_DATA = {
-    'cloudside.tests.data': ['*.txt', '*.png', '*.dat', '*.csv',],
-    'cloudside.tests.baseline_images.viz_tests': ['*.png'],
+    "cloudside.tests.data": ["*.txt", "*.png", "*.dat", "*.csv"],
+    "cloudside.tests.baseline_images.viz_tests": ["*.png"],
 }
 
 DESCRIPTION = "cloudside - download, assess, and visualize weather data"
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup(
         name="cloudside",
         version="0.1",
@@ -34,9 +33,5 @@ if __name__ == '__main__':
             "Topic :: Scientific/Engineering :: Atmospheric Science",
             "Topic :: Scientific/Engineering :: Visualization",
         ],
-        entry_points={
-            'console_scripts': [
-                'cloudside=cloudside.cli:main'
-            ]
-        }
+        entry_points={"console_scripts": ["cloudside=cloudside.cli:main"]},
     )

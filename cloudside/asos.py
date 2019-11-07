@@ -15,11 +15,7 @@ from . import validate
 _logger = logging.getLogger(__name__)
 
 
-__all__ = [
-    'fetch_files',
-    'parse_file',
-    'get_data',
-]
+__all__ = ["fetch_files", "parse_file", "get_data"]
 
 
 HOURLY = pandas.offsets.Hour(1)
@@ -38,7 +34,7 @@ class MetarParser(Metar.Metar):
     def __init__(self, *args, **kwargs):
         self._datetime = None
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+            warnings.simplefilter("always")
             super().__init__(*args, **kwargs)
             if len(w) > 1:
                 for _w in w:
@@ -48,17 +44,17 @@ class MetarParser(Metar.Metar):
         """
         Handle otherwise unparseable main-body groups.
         """
-        self._unparsed_groups.append(d['group'])
+        self._unparsed_groups.append(d["group"])
 
     @property
     def datetime(self):
-        '''get date/time of asos reading'''
+        """get date/time of asos reading"""
         if self._datetime is None:
-            yr = int(self.code[13:17])   # year
-            mo = int(self.code[17:19])   # month
-            da = int(self.code[19:21])   # day
-            hr = int(self.code[37:39])   # hour
-            mi = int(self.code[40:42])   # minute
+            yr = int(self.code[13:17])  # year
+            mo = int(self.code[17:19])  # month
+            da = int(self.code[19:21])  # day
+            hr = int(self.code[37:39])  # hour
+            mi = int(self.code[40:42])  # minute
 
             self._datetime = datetime.datetime(yr, mo, da, hr, mi)
 
@@ -66,28 +62,28 @@ class MetarParser(Metar.Metar):
 
     def asos_dict(self):
         return {
-            'datetime': self.datetime,
-            'raw_precipitation': value_or_not(self.precip_1hr),
-            'temperature': value_or_not(self.temp),
-            'dew_point': value_or_not(self.dewpt),
-            'wind_speed': value_or_not(self.wind_speed),
-            'wind_direction': value_or_not(self.wind_dir),
-            'air_pressure': value_or_not(self.press),
-            'sky_cover': _process_sky_cover(self)
+            "datetime": self.datetime,
+            "raw_precipitation": value_or_not(self.precip_1hr),
+            "temperature": value_or_not(self.temp),
+            "dew_point": value_or_not(self.dewpt),
+            "wind_speed": value_or_not(self.wind_speed),
+            "wind_direction": value_or_not(self.wind_dir),
+            "air_pressure": value_or_not(self.press),
+            "sky_cover": _process_sky_cover(self),
         }
 
 
 def _process_sky_cover(obs):
     coverdict = {
-        'CLR': 0.0000,
-        'SKC': 0.0000,
-        'NSC': 0.0000,
-        'NCD': 0.0000,
-        'FEW': 0.1785,
-        'SCT': 0.4375,
-        'BKN': 0.7500,
-        'VV': 0.9900,
-        'OVC': 1.0000
+        "CLR": 0.0000,
+        "SKC": 0.0000,
+        "NSC": 0.0000,
+        "NCD": 0.0000,
+        "FEW": 0.1785,
+        "SCT": 0.4375,
+        "BKN": 0.7500,
+        "VV": 0.9900,
+        "OVC": 1.0000,
     }
     coverlist = []
     for sky in obs.sky:
@@ -97,7 +93,7 @@ def _process_sky_cover(obs):
     if len(coverlist) > 0:
         cover = numpy.max(coverlist)
     else:
-        cover = 'NA'
+        cover = "NA"
 
     return cover
 
@@ -134,14 +130,13 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     dst_path = Path(raw_folder).joinpath(src_name)
     has_failed = False
     if (not dst_path.exists()) or force_download:
-        with dst_path.open(mode='w', encoding='utf-8') as dst_obj:
+        with dst_path.open(mode="w", encoding="utf-8") as dst_obj:
             try:
                 ftp.retrlines(
-                    f'RETR {ftpfolder}/{src_name}',
-                    lambda x: dst_obj.write(x + '\n')
+                    f"RETR {ftpfolder}/{src_name}", lambda x: dst_obj.write(x + "\n")
                 )
             except error_perm:
-                _logger.log(logging.ERROR, f'No such file {src_name}')
+                _logger.log(logging.ERROR, f"No such file {src_name}")
                 has_failed = True
 
         if has_failed:
@@ -151,8 +146,15 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     return dst_path
 
 
-def fetch_files(station_id, startdate, stopdate, email, raw_folder,
-                force_download=False, pbar_fxn=None):
+def fetch_files(
+    station_id,
+    startdate,
+    stopdate,
+    email,
+    raw_folder,
+    force_download=False,
+    pbar_fxn=None,
+):
     """ Fetches a single file from the ASOS ftp and returns its path on the
     local file system
 
@@ -184,8 +186,8 @@ def fetch_files(station_id, startdate, stopdate, email, raw_folder,
     """
 
     dates = pandas.date_range(startdate, stopdate, freq=MONTHLY)
-    dates_to_fetch = validate.progress_bar(pbar_fxn, dates, desc='Fetching')
-    with FTP('ftp.ncdc.noaa.gov') as ftp:
+    dates_to_fetch = validate.progress_bar(pbar_fxn, dates, desc="Fetching")
+    with FTP("ftp.ncdc.noaa.gov") as ftp:
         ftp.login(passwd=email)
         raw_paths = [
             _fetch_file(station_id, ts, ftp, raw_folder, force_download)
@@ -217,10 +219,10 @@ def _find_reset_time(precip_ts):
     if precip_ts.any():
         rt = (
             precip_ts.resample(HOURLY)
-                .apply(get_idxmin)
-                .dropna()
-                .dt.minute.value_counts()
-                .idxmax()
+            .apply(get_idxmin)
+            .dropna()
+            .dt.minute.value_counts()
+            .idxmax()
         )
     return rt
 
@@ -247,22 +249,20 @@ def _process_precip(data, rt, raw_precipcol):
 
     df = (
         data[[raw_precipcol]]
-            .assign(rp=lambda df: df[raw_precipcol])
-            .assign(d1=lambda df: df['rp'].diff())
+        .assign(rp=lambda df: df[raw_precipcol])
+        .assign(d1=lambda df: df["rp"].diff())
     )
 
     is_reset = df.index.minute == rt
-    neg_diff = df['d1'] < 0
-    first_in_chunk = df['d1'].isnull() & ~df['rp'].isnull()
+    neg_diff = df["d1"] < 0
+    first_in_chunk = df["d1"].isnull() & ~df["rp"].isnull()
     precip = numpy.where(
-        is_reset | neg_diff | first_in_chunk,
-        df[raw_precipcol],
-        df['d1']
+        is_reset | neg_diff | first_in_chunk, df[raw_precipcol], df["d1"]
     )
     return precip
 
 
-def parse_file(filepath, new_precipcol='precipitation'):
+def parse_file(filepath, new_precipcol="precipitation"):
     """ Parses a raw ASOS/METAR file into a pandas.DataFrame
 
     Parameters
@@ -284,23 +284,27 @@ def parse_file(filepath, new_precipcol='precipitation'):
         except Metar.ParserError:
             return {}
 
-    with filepath.open('r') as rawf:
+    with filepath.open("r") as rawf:
         df = pandas.DataFrame(list(map(_do_parse, rawf)))
 
     if not df.empty:
-        data = (
-            df.groupby('datetime').last()
-              .sort_index()
-              .resample(FIVEMIN).asfreq()
-        )
+        data = df.groupby("datetime").last().sort_index().resample(FIVEMIN).asfreq()
 
-        rt = _find_reset_time(data['raw_precipitation'])
-        precip = _process_precip(data, rt, 'raw_precipitation')
+        rt = _find_reset_time(data["raw_precipitation"])
+        precip = _process_precip(data, rt, "raw_precipitation")
         return data.assign(**{new_precipcol: precip})
 
 
-def get_data(station_id, startdate, stopdate, email, folder='.',
-             raw_folder='01-raw', force_download=False, pbar_fxn=None):
+def get_data(
+    station_id,
+    startdate,
+    stopdate,
+    email,
+    folder=".",
+    raw_folder="01-raw",
+    force_download=False,
+    pbar_fxn=None,
+):
     """ Download and process a range of FAA/ASOS data files for a given station
 
     Parameters
@@ -339,9 +343,15 @@ def get_data(station_id, startdate, stopdate, email, folder='.',
 
     _raw_folder = Path(folder).joinpath(raw_folder)
     _raw_folder.mkdir(parents=True, exist_ok=True)
-    _raw_files = fetch_files(station_id, startdate, stopdate, email,
-                             raw_folder=_raw_folder, pbar_fxn=pbar_fxn,
-                             force_download=force_download)
-    raw_files = validate.progress_bar(pbar_fxn, _raw_files, desc='Parsing')
+    _raw_files = fetch_files(
+        station_id,
+        startdate,
+        stopdate,
+        email,
+        raw_folder=_raw_folder,
+        pbar_fxn=pbar_fxn,
+        force_download=force_download,
+    )
+    raw_files = validate.progress_bar(pbar_fxn, _raw_files, desc="Parsing")
     df = pandas.concat([parse_file(rf) for rf in raw_files])
     return df.pipe(validate.unique_index)

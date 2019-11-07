@@ -15,7 +15,9 @@ from .helpers import get_test_file
 
 @pytest.fixture
 def expected_hydra():
-    csv = StringIO(dedent("""\
+    csv = StringIO(
+        dedent(
+            """\
         datetime,sample_hydra
         2018-10-06 00:00:00,0.01
         2018-10-06 01:00:00,0.0
@@ -89,23 +91,26 @@ def expected_hydra():
         2018-10-08 21:00:00,
         2018-10-08 22:00:00,
         2018-10-08 23:00:00,
-    """))
+    """
+        )
+    )
     return pandas.read_csv(csv, parse_dates=True, index_col=[0])
 
 
 def test_parse_file(expected_hydra):
-    filepath = Path(get_test_file('sample_hydra.txt'))
+    filepath = Path(get_test_file("sample_hydra.txt"))
     result = hydra.parse_file(filepath)
     pdtest.assert_frame_equal(expected_hydra, result)
 
 
-@mock.patch('requests.get')
-@mock.patch('cloudside.validate.unique_index')
-@mock.patch('cloudside.hydra._fetch_file', return_value='this/kpdx.txt')
-@mock.patch('cloudside.hydra.parse_file')
+@mock.patch("requests.get")
+@mock.patch("cloudside.validate.unique_index")
+@mock.patch("cloudside.hydra._fetch_file", return_value="this/kpdx.txt")
+@mock.patch("cloudside.hydra.parse_file")
 def test_get_data(parser, fetcher, checker, getter):
     with tempfile.TemporaryDirectory() as topdir:
-        hydra.get_data('KPDX', folder=topdir)
-        parser.assert_called_once_with('this/kpdx.txt')
-        fetcher.assert_called_once_with('KPDX', Path(topdir) / '01-raw',
-                                        force_download=False)
+        hydra.get_data("KPDX", folder=topdir)
+        parser.assert_called_once_with("this/kpdx.txt")
+        fetcher.assert_called_once_with(
+            "KPDX", Path(topdir) / "01-raw", force_download=False
+        )

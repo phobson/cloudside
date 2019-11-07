@@ -23,16 +23,16 @@ def axes_object(ax):
 
 def source(source):
     """ checks that a *source* value is valid """
-    if source.lower() in ('wunderground', 'wunder_nonairport'):
-        raise NotImplementedError('wunderground support is borked')
-    elif source.lower() not in ('asos',):
+    if source.lower() in ("wunderground", "wunder_nonairport"):
+        raise NotImplementedError("wunderground support is borked")
+    elif source.lower() not in ("asos",):
         raise ValueError('source must now be "asos"')
     return source.lower()
 
 
 def step(step):
     """ checks that a *step* value is valid """
-    if step.lower() not in ('raw', 'flat', 'compile'):
+    if step.lower() not in ("raw", "flat", "compile"):
         raise ValueError('step must be one of "raw" or "flat"')
     return step.lower()
 
@@ -40,16 +40,16 @@ def step(step):
 def file_status(filename):
     """ confirms that a raw file isn't empty """
     if os.path.exists(filename):
-        with open(filename, 'r') as testfile:
+        with open(filename, "r") as testfile:
             line = testfile.readline()
 
         if line:
-            status = 'ok'
+            status = "ok"
         else:
-            status = 'bad'
+            status = "bad"
 
     else:
-        status = 'not there'
+        status = "not there"
 
     return status
 
@@ -66,4 +66,4 @@ def unique_index(df):
     if df.index.is_unique:
         return df
     else:
-        raise ValueError('index is not unique')
+        raise ValueError("index is not unique")
