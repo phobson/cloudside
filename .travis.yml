@@ -5,6 +5,10 @@ matrix:
   include:
     - python: 3.6
       env:
+        - COVERAGE=false
+        - ARGS="--verbose"
+    - python: 3.7
+      env:
         - COVERAGE=true
         - ARGS="--verbose --strict"
 
