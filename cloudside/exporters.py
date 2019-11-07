@@ -258,4 +258,4 @@ def _obs_from_row(row):
     rowheader = ",".join([state_coopid, recordtype, element, units])
 
     rows = map(partial(_write_obs, rowheader, year, month, day), parsedObs)
-    return list(filter(lambda r: r is not None, rows))
+    return "".join(filter(lambda r: r is not None, rows))
