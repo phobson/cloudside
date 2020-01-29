@@ -118,8 +118,7 @@ def setup_station_data(
 
     # generate the full index (every hour, ever day)
     fulldates = pandas.date_range(
-        start=origin_date, end=future_date,
-        freq=pandas.offsets.Hour(1),
+        start=origin_date, end=future_date, freq=pandas.offsets.Hour(1)
     )
     station_data = station_data.reindex(index=fulldates)
 

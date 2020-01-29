@@ -23,7 +23,7 @@ _fields = [
     "air_pressure",
     "sky_cover",
 ]
-Obs = namedtuple('Obs', _fields)
+Obs = namedtuple("Obs", _fields)
 
 
 _logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class MetarParser(Metar.Metar):
     def asos_dict(self):
         if self.datetime is not None:
             return Obs(
-                datetime=self.datetime.round('5min'),
+                datetime=self.datetime.round("5min"),
                 raw_precipitation=value_or_not(self.precip_1hr),
                 temperature=value_or_not(self.temp),
                 dew_point=value_or_not(self.dewpt),
@@ -109,8 +109,15 @@ def _process_sky_cover(obs):
     return cover
 
 
-def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False,
-                past_attempts=0, max_attempts=10):
+def _fetch_file(
+    station_id,
+    timestamp,
+    ftp,
+    raw_folder,
+    force_download=False,
+    past_attempts=0,
+    max_attempts=10,
+):
     """ Fetches a single file from the ASOS ftp and returns its pathh on the
     local file system
 
@@ -149,14 +156,22 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False,
                     f"RETR {ftpfolder}/{src_name}", lambda x: dst_obj.write(x + "\n")
                 )
             except TimeoutError:  # pragma: no cover
-                _logger.log(logging.WARNING, f"Timedout fetch {src_name} on attempt {past_attempts}")
+                _logger.log(
+                    logging.WARNING,
+                    f"Timedout fetch {src_name} on attempt {past_attempts}",
+                )
                 if past_attempts >= max_attempts:
                     has_failed = True
                 else:
-                    return _fetch_file(station_id, timestamp, ftp, raw_folder,
-                                       force_download=force_download,
-                                       past_attempts=past_attempts,
-                                       max_attempts=max_attempts)
+                    return _fetch_file(
+                        station_id,
+                        timestamp,
+                        ftp,
+                        raw_folder,
+                        force_download=force_download,
+                        past_attempts=past_attempts,
+                        max_attempts=max_attempts,
+                    )
             except error_perm:
                 _logger.log(logging.ERROR, f"No such file {src_name}")
                 has_failed = True
