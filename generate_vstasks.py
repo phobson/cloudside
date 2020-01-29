@@ -65,7 +65,7 @@ if __name__ == "__main__":
         name = sys.argv[1]
 
     python = Path(sys.executable)
-    tester = python.parent / 'pytest'
+    tester = python.parent / "pytest"
 
     with taskspath.open("w") as tasksfile:
         tasksfile.write(TASK_TEMPLATE.format(tester=str(tester), modulename=name))
