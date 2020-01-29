@@ -7,6 +7,7 @@ from matplotlib import ticker
 from matplotlib import gridspec
 from matplotlib import colorbar
 from matplotlib import figure
+from matplotlib import dates
 import pandas
 
 
@@ -116,8 +117,9 @@ def setup_station_data(
     cooptxt = coopid.replace(":", "")
 
     # generate the full index (every hour, ever day)
-    fulldates = pandas.DatetimeIndex(
-        freq=pandas.offsets.Hour(1), start=origin_date, end=future_date
+    fulldates = pandas.date_range(
+        start=origin_date, end=future_date,
+        freq=pandas.offsets.Hour(1),
     )
     station_data = station_data.reindex(index=fulldates)
 
