@@ -109,7 +109,8 @@ def _process_sky_cover(obs):
     return cover
 
 
-def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
+def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False,
+                past_attempts=0, max_attempts=10):
     """ Fetches a single file from the ASOS ftp and returns its pathh on the
     local file system
 
@@ -143,9 +144,19 @@ def _fetch_file(station_id, timestamp, ftp, raw_folder, force_download=False):
     if (not dst_path.exists()) or force_download:
         with dst_path.open(mode="w", encoding="utf-8") as dst_obj:
             try:
+                past_attempts += 1
                 ftp.retrlines(
                     f"RETR {ftpfolder}/{src_name}", lambda x: dst_obj.write(x + "\n")
                 )
+            except TimeoutError:  # pragma: no cover
+                _logger.log(logging.WARNING, f"Timedout fetch {src_name} on attempt {past_attempts}")
+                if past_attempts >= max_attempts:
+                    has_failed = True
+                else:
+                    return _fetch_file(station_id, timestamp, ftp, raw_folder,
+                                       force_download=force_download,
+                                       past_attempts=past_attempts,
+                                       max_attempts=max_attempts)
             except error_perm:
                 _logger.log(logging.ERROR, f"No such file {src_name}")
                 has_failed = True
