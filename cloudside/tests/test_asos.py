@@ -88,21 +88,24 @@ def retr_error(cmd, action):
 
 
 def test_MetarParser_datetime(asos_metar):
-    assert asos_metar.datetime == datetime(2017, 1, 8, 9)
+    expected = pandas.Timestamp(year=2017, month=1, day=8, hour=9, minute=0, second=31)
+    assert asos_metar.datetime == expected
 
 
 def test_MetarParser_asos_dict(asos_metar):
     result = asos_metar.asos_dict()
-    expected = {
-        "datetime": datetime(2017, 1, 8, 9),
-        "raw_precipitation": 0.05,
-        "temperature": 0.0,
-        "dew_point": -0.6,
-        "wind_speed": 23.0,
-        "wind_direction": 100,
-        "air_pressure": 250.0,
-        "sky_cover": 1.0,
-    }
+    # the "dict" rounds down the timestamp to the nearest 5 min
+    dateval = pandas.Timestamp(year=2017, month=1, day=8, hour=9, minute=0, second=0)
+    expected = asos.Obs(
+        datetime=dateval,
+        raw_precipitation=0.05,
+        temperature=0.0,
+        dew_point=-0.6,
+        wind_speed=23.0,
+        wind_direction=100,
+        air_pressure=250.0,
+        sky_cover=1.0,
+    )
     assert result == expected
 
 

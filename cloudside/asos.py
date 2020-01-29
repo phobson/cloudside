@@ -4,6 +4,7 @@ import logging
 import warnings
 from ftplib import FTP, error_perm
 from pathlib import Path
+from collections import namedtuple
 
 import numpy
 import pandas
@@ -12,10 +13,23 @@ from metar import Metar, Datatypes
 from . import validate
 
 
+_fields = [
+    "datetime",
+    "raw_precipitation",
+    "temperature",
+    "dew_point",
+    "wind_speed",
+    "wind_direction",
+    "air_pressure",
+    "sky_cover",
+]
+Obs = namedtuple('Obs', _fields)
+
+
 _logger = logging.getLogger(__name__)
 
 
-__all__ = ["fetch_files", "parse_file", "get_data"]
+__all__ = ["fetch_files", "parse_file", "get_data", "Obs"]
 
 
 HOURLY = pandas.offsets.Hour(1)
@@ -49,28 +63,25 @@ class MetarParser(Metar.Metar):
     @property
     def datetime(self):
         """get date/time of asos reading"""
-        if self._datetime is None:
-            yr = int(self.code[13:17])  # year
-            mo = int(self.code[17:19])  # month
-            da = int(self.code[19:21])  # day
-            hr = int(self.code[37:39])  # hour
-            mi = int(self.code[40:42])  # minute
-
-            self._datetime = datetime.datetime(yr, mo, da, hr, mi)
-
+        if self._datetime is None and len(self.code) > 45:
+            self._datetime = pandas.Timestamp(self.code[28:45])
         return self._datetime
 
     def asos_dict(self):
-        return {
-            "datetime": self.datetime,
-            "raw_precipitation": value_or_not(self.precip_1hr),
-            "temperature": value_or_not(self.temp),
-            "dew_point": value_or_not(self.dewpt),
-            "wind_speed": value_or_not(self.wind_speed),
-            "wind_direction": value_or_not(self.wind_dir),
-            "air_pressure": value_or_not(self.press),
-            "sky_cover": _process_sky_cover(self),
-        }
+        if self.datetime is not None:
+            return Obs(
+                datetime=self.datetime.round('5min'),
+                raw_precipitation=value_or_not(self.precip_1hr),
+                temperature=value_or_not(self.temp),
+                dew_point=value_or_not(self.dewpt),
+                wind_speed=value_or_not(self.wind_speed),
+                wind_direction=value_or_not(self.wind_dir),
+                air_pressure=value_or_not(self.press),
+                sky_cover=_process_sky_cover(self),
+            )
+        else:
+            _blanks = [None] * 8
+            return Obs(*_blanks)
 
 
 def _process_sky_cover(obs):
