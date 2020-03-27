@@ -12,7 +12,7 @@ import numpy.testing as nptest
 import pandas.util.testing as pdtest
 
 from cloudside import asos
-from .helpers import get_test_file, raises
+from cloudside.tests import get_test_file
 
 
 @pytest.fixture
