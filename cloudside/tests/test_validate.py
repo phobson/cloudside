@@ -4,11 +4,13 @@ from matplotlib import axes
 import pytest
 
 from cloudside import validate
-from .helpers import raises, get_test_file
+
+from . import raises
+from cloudside.tests import get_test_file
 
 
 def test_axes_object_invalid():
-    with pytest.raises(ValueError):
+    with raises(ValueError):
         validate.axes_object("junk")
 
 
@@ -43,7 +45,7 @@ def test_source(src, error):
 def test_step(step, error):
     validate.step("flat")
     validate.step("raw")
-    with pytest.raises(ValueError):
+    with raises(ValueError):
         validate.step("junk")
 
 

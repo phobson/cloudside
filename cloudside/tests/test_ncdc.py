@@ -4,7 +4,7 @@ import pytest
 import pandas.util.testing as pdtest
 
 from cloudside import ncdc
-from .helpers import get_test_file
+from cloudside.tests import get_test_file
 
 
 @pytest.fixture

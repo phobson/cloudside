@@ -9,7 +9,7 @@ import pytest
 import pandas.util.testing as pdtest
 
 from cloudside import viz
-from .helpers import get_test_file
+from cloudside.tests import get_test_file
 
 
 IMG_OPTS = dict(tolerance=21, baseline_dir="baseline_images/viz_tests")
