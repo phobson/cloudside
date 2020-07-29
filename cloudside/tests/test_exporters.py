@@ -4,7 +4,7 @@ import tempfile
 import pandas
 
 import pytest
-import pandas.util.testing as pdtest
+import pandas.testing as pdtest
 
 from cloudside import exporters
 from cloudside.tests import get_test_file

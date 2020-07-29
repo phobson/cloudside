@@ -7,7 +7,7 @@ import pandas
 
 from unittest import mock
 import pytest
-import pandas.util.testing as pdtest
+import pandas.testing as pdtest
 
 from cloudside import hydra
 from cloudside.tests import get_test_file

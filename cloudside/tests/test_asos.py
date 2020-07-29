@@ -9,7 +9,7 @@ import pandas
 from unittest import mock
 import pytest
 import numpy.testing as nptest
-import pandas.util.testing as pdtest
+import pandas.testing as pdtest
 
 from cloudside import asos
 from cloudside.tests import get_test_file
