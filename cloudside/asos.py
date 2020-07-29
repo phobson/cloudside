@@ -224,7 +224,7 @@ def fetch_files(
 
     dates = pandas.date_range(startdate, stopdate, freq=MONTHLY)
     dates_to_fetch = validate.progress_bar(pbar_fxn, dates, desc="Fetching")
-    with FTP("ftp.ncdc.noaa.gov") as ftp:
+    with FTP("ftp.ncei.noaa.gov") as ftp:
         ftp.login(passwd=email)
         raw_paths = [
             _fetch_file(station_id, ts, ftp, raw_folder, force_download)
