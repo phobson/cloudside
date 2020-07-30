@@ -1,7 +1,9 @@
 from matplotlib import figure
 from matplotlib import axes
+import pandas
 
 import pytest
+import pandas.testing as pdtest
 
 from cloudside import validate
 
