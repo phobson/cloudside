@@ -219,11 +219,13 @@ def test_parse_file():
     datpath = pathlib.Path(get_test_file("sample_asos.dat"))
     csvpath = pathlib.Path(get_test_file("sample_asos.csv"))
     result = asos.parse_file(datpath)
-    expected = pandas.read_csv(csvpath, parse_dates=True, index_col=["datetime"])
+    expected = (
+        pandas.read_csv(csvpath, parse_dates=True, index_col=["datetime"])
+            .resample('5min').asfreq()
+    )
     pdtest.assert_frame_equal(
         result.fillna(-9999).sort_index(axis="columns"),
         expected.fillna(-9999).sort_index(axis="columns"),
-        check_less_precise=True,
     )
 
 
