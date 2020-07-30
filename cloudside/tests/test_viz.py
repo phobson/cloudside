@@ -232,7 +232,7 @@ def test__compute_rose(test_data, rose_index):
 
     expected.index = rose_index
     rose.index = rose_index
-    pdtest.assert_frame_equal(rose, expected, check_less_precise=True)
+    pdtest.assert_frame_equal(rose, expected, atol=1e-5)
 
 
 def test__compute_rose_short_record(short_data, rose_index):
@@ -276,7 +276,7 @@ def test__compute_rose_short_record(short_data, rose_index):
 
     expected.index = rose_index
     rose.index = rose_index
-    pdtest.assert_frame_equal(rose, expected, check_less_precise=True)
+    pdtest.assert_frame_equal(rose, expected)
 
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
