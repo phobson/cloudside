@@ -221,7 +221,8 @@ def test_parse_file():
     result = asos.parse_file(datpath)
     expected = (
         pandas.read_csv(csvpath, parse_dates=True, index_col=["datetime"])
-            .resample('5min').asfreq()
+        .resample("5min")
+        .asfreq()
     )
     pdtest.assert_frame_equal(
         result.fillna(-9999).sort_index(axis="columns"),
