@@ -363,6 +363,8 @@ def dataAvailabilityHeatmap(data, figsize=None):
 
 
 if __name__ == "__main__":
+    filepath = "test.dat"
+    sep = "\s+"
     data_1hr = pandas.read_csv(
         filepath,
         sep=sep,
@@ -403,4 +405,4 @@ if __name__ == "__main__":
 
     pct_avail_grid = pct_avail.T
     pct_avail_grid.sort_index(inplace=True, ascending=False)
-    fig = rainfall.dataAvailabilityHeatmap(pct_avail_grid)
+    fig = dataAvailabilityHeatmap(pct_avail_grid)

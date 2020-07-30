@@ -8,7 +8,7 @@ import pandas
 from . import validate
 
 
-__all__ = ["hyetograph", "rainClock", "windRose", "psychromograph", "temperaturePlot"]
+__all__ = ["hyetograph", "rain_clock", "rose", "psychromograph", "temperature"]
 
 DEEPCOLORS = [
     (0.29803921568627451, 0.44705882352941179, 0.69019607843137254),
