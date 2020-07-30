@@ -58,7 +58,6 @@ def get_test_file(filename):
 def teststrict(*args):
     options = [
         resource_filename("cloudside", ""),
-        "--pep8",
         "--mpl",
         "--runslow",
         *list(args),
