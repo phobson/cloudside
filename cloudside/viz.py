@@ -1,5 +1,6 @@
 import numpy
 from matplotlib import figure
+from matplotlib import ticker
 from matplotlib.ticker import FuncFormatter
 from matplotlib.dates import DateFormatter
 import pandas
@@ -243,8 +244,8 @@ def rain_clock(dataframe, raincol="precip"):
         color="Crimson",
         linewidth=0.5,
     )
-    ax1.set_title("AM Hours")
-    ax2.set_title("PM Hours")
+    ax1.set_title("AM Hours\n")
+    ax2.set_title("PM Hours\n")
     for ax in [ax1, ax2]:
         ax.set_theta_zero_location("N")
         ax.set_theta_direction("clockwise")
@@ -391,7 +392,11 @@ def _draw_rose(rose, ax, palette=None, show_calm=True, show_legend=True, **other
 
     if show_legend:
         leg = ax.legend(loc=(0.9, -0.1), ncol=1, fontsize=8, frameon=False)
-    xtl = ax.set_xticklabels(["N", "NE", "E", "SE", "S", "SW", "W", "NW"])
+
+    thetas = numpy.linspace(0, 2 * numpy.pi, 8, endpoint=False)
+    directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    ax.xaxis.set_major_locator(ticker.FixedLocator(thetas))
+    ax.xaxis.set_major_formatter(ticker.FixedFormatter(directions))
 
     return fig
 
