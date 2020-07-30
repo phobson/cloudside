@@ -4,5 +4,8 @@ numpy
 matplotlib
 pandas
 metar >= 1.5
+tqdm
 pytest
 pytest-mpl
+pytest-cov
+coverage

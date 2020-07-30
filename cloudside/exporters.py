@@ -239,6 +239,22 @@ def _write_obs(rowheader, year, month, day, obs):
 
 
 def _obs_from_row(row):
+    """
+    Parses the NCDC format illustrated below:
+    HPD04511406HPCPHI19480700010040100000000 1300000000M 2400000000M 2500000000I
+    AAABBBBBBCCCCCCDDEEEEFFGGGGHHHIIJJJJJJJJ IIJJJJJJJJK IIJJJJJJJJK IIJJJJJJJJK
+
+    Group A - the Record Type
+    Group B - the station COOPID
+    Group C - the element (i.e., parameter; e.g., precip)
+    Group D - units (HI = hundreths of an inch)
+    Group E - year
+    Group F - month
+    Group H - day
+    Group I - hour
+    Group J - observed value
+    Group K - qualifier
+    """
     values = row.strip().split()
     header = list(values.pop(0))
     recordtype = _pop_many(header, 3)
@@ -249,7 +265,8 @@ def _obs_from_row(row):
     month = int(_pop_many(header, 2))
     day = int(_pop_many(header, 4))
 
-    _count = int(_pop_many(header, 3))
+    # strip the the row's count of observations from the header
+    int(_pop_many(header, 3))
 
     observations = ["".join(header)]
     observations.extend(values)

@@ -99,7 +99,7 @@ def _plotter(
 
 
 def hyetograph(dataframe, col="precipitation", freq="hourly", ax=None, downward=True):
-    """ Plot showing rainfall depth over time.
+    """Plot showing rainfall depth over time.
 
     Parameters
     ----------
@@ -132,7 +132,7 @@ def hyetograph(dataframe, col="precipitation", freq="hourly", ax=None, downward=
 
 
 def psychromograph(dataframe, col="air_pressure", freq="hourly", how="mean", ax=None):
-    """ Plot showing barometric pressure over time.
+    """Plot showing barometric pressure over time.
 
     Parameters
     ----------
@@ -162,7 +162,7 @@ def psychromograph(dataframe, col="air_pressure", freq="hourly", how="mean", ax=
 
 
 def temperature(dataframe, col="temperature", freq="hourly", how="mean", ax=None):
-    """ Plot showing temperature over time.
+    """Plot showing temperature over time.
 
     Parameters
     ----------
@@ -192,7 +192,7 @@ def temperature(dataframe, col="temperature", freq="hourly", how="mean", ax=None
 
 
 def rain_clock(dataframe, raincol="precip"):
-    """ Mathematically dubious representation of the likelihood of rain at
+    """Mathematically dubious representation of the likelihood of rain at
     at any hour given that will rain.
 
     Parameters
@@ -391,7 +391,7 @@ def _draw_rose(rose, ax, palette=None, show_calm=True, show_legend=True, **other
         )
 
     if show_legend:
-        leg = ax.legend(loc=(0.9, -0.1), ncol=1, fontsize=8, frameon=False)
+        ax.legend(loc=(0.9, -0.1), ncol=1, fontsize=8, frameon=False)
 
     thetas = numpy.linspace(0, 2 * numpy.pi, 8, endpoint=False)
     directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -419,7 +419,7 @@ def rose(
     total_count=None,
     **bar_opts
 ):
-    """ Draw a rose diagram
+    """Draw a rose diagram
 
     Parameters
     ----------
@@ -476,13 +476,15 @@ def rose(
     Example
     -------
     >>> from matplotlib import pyplot
-    >>> import cloudside
-    >>> data = cloudside.load_example_data()
+    >>> from tqdm import tqdm
+    >>> from cloudside import asos, viz, tests
+    >>> csvfile = tests.get_test_file("data_for_viz_tests.csv")
+    >>> data = pandas.read_csv(csvfile, parse_dates=True, index_col=0)
     >>> fig, ax = pyplot.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
     >>> # use show_legend = False since the legend might overlap tick labels
-    >>> fig, rose = cloudsize.viz.windRose(data, ax=ax, show_legend=False)
+    >>> fig, rose = viz.rose(data, "WindSpd", "WindDir",ax=ax, show_legend=False)
     >>> # add legend ourselves in a position further away from the Axes
-    >>> ax.legend(loc='lower right', bbox_to_anchor=(1.5. 0.25))
+    >>> leg = ax.legend(loc='lower right', bbox_to_anchor=(1.5, 0.25))
 
     """
 

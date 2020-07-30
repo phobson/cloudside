@@ -1,5 +1,4 @@
 # std lib stuff
-import datetime
 import logging
 import warnings
 from ftplib import FTP, error_perm
@@ -8,7 +7,7 @@ from collections import namedtuple
 
 import numpy
 import pandas
-from metar import Metar, Datatypes
+from metar import Metar
 
 from . import validate
 
@@ -118,7 +117,7 @@ def _fetch_file(
     past_attempts=0,
     max_attempts=10,
 ):
-    """ Fetches a single file from the ASOS ftp and returns its pathh on the
+    """Fetches a single file from the ASOS ftp and returns its pathh on the
     local file system
 
     Parameters
@@ -192,7 +191,7 @@ def fetch_files(
     force_download=False,
     pbar_fxn=None,
 ):
-    """ Fetches a single file from the ASOS ftp and returns its path on the
+    """Fetches a single file from the ASOS ftp and returns its path on the
     local file system
 
     Parameters
@@ -234,7 +233,7 @@ def fetch_files(
 
 
 def _find_reset_time(precip_ts):
-    """ Determines the precipitation gauge's accumulation reset time.
+    """Determines the precipitation gauge's accumulation reset time.
 
     Parameters
     ----------
@@ -265,7 +264,7 @@ def _find_reset_time(precip_ts):
 
 
 def _process_precip(data, rt, raw_precipcol):
-    """ Processes precip data that accumulates hourly into raw minute
+    """Processes precip data that accumulates hourly into raw minute
     intensities.
 
     Parameters
@@ -300,7 +299,7 @@ def _process_precip(data, rt, raw_precipcol):
 
 
 def parse_file(filepath, new_precipcol="precipitation"):
-    """ Parses a raw ASOS/METAR file into a pandas.DataFrame
+    """Parses a raw ASOS/METAR file into a pandas.DataFrame
 
     Parameters
     ----------
@@ -342,7 +341,7 @@ def get_data(
     force_download=False,
     pbar_fxn=None,
 ):
-    """ Download and process a range of FAA/ASOS data files for a given station
+    """Download and process a range of FAA/ASOS data files for a given station
 
     Parameters
     ----------
@@ -373,7 +372,7 @@ def get_data(
     --------
     >>> from cloudside import asos
     >>> from tqdm import tqdm
-    >>> pdx = asos.get_data('KPDX', '2010-10-01', '2013-10-31', my_email,
+    >>> pdx = asos.get_data('KPDX', '2013-09-01', '2013-10-31', 'iamweather@sensors.net',
     ...                     folder='Portland_weather', raw_folder='asos_files',
     ...                     force_download=False, pbar_fxn=tqdm)
     """
