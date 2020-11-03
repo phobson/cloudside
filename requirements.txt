@@ -3,4 +3,5 @@ requests
 numpy
 matplotlib
 pandas
+tqdm
 metar >= 1.5

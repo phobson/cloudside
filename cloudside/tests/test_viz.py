@@ -1,3 +1,4 @@
+import os
 from io import StringIO
 from textwrap import dedent
 import warnings
@@ -12,7 +13,10 @@ from cloudside import viz
 from cloudside.tests import get_test_file
 
 
-IMG_OPTS = dict(tolerance=21, baseline_dir="baseline_images/viz_tests")
+IMG_OPTS = dict(
+    tolerance=int(os.environ.get("MPL_IMGCOMP_TOLERANCE", 25)),
+    baseline_dir="baseline_images/viz_tests",
+)
 
 
 def quiet_layout(fig):

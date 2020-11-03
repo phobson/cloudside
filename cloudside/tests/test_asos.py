@@ -1,4 +1,3 @@
-from datetime import datetime
 import pathlib
 import tempfile
 import ftplib

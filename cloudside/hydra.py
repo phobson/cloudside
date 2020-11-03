@@ -15,7 +15,7 @@ def _fetch_file(station_id, raw_folder, force_download=False):
 
 
 def parse_file(filepath):
-    """ Parses a rain file downloaded from the Portland Hydra Network
+    """Parses a rain file downloaded from the Portland Hydra Network
 
     Parameters
     ----------
@@ -61,7 +61,7 @@ def parse_file(filepath):
 
 
 def get_data(station_id, folder=".", raw_folder="01-raw", force_download=False):
-    """ Download and parse full records from Portland's Hydra Network
+    """Download and parse full records from Portland's Hydra Network
 
     Parameters
     ----------

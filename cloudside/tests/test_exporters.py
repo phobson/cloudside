@@ -68,7 +68,7 @@ def test_dumpNCDCFormat(fivemin):
     knownfile = get_test_file("known_hourly_NCDC.dat")
     with tempfile.TemporaryDirectory() as datadir:
         outfile = os.path.join(datadir, "test_dumpNCDC.dat")
-        data = exporters.NCDCFormat(
+        exporters.NCDCFormat(
             fivemin.resample("1H").sum(),
             "041685",
             "California",

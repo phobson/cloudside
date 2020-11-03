@@ -2,7 +2,6 @@ from pkg_resources import resource_filename
 from functools import wraps
 from contextlib import contextmanager
 
-import cloudside
 
 try:
     import pytest

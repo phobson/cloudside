@@ -16,7 +16,7 @@ def date_parser(x):
 
 
 def remove_bad_rain_values(df, raincol="hpcp", threshold=500):
-    """ Filters invalid rainfall values and returns a new series.
+    """Filters invalid rainfall values and returns a new series.
 
     NCDC use 99999 1/100th of inch for invalid/missing values.
     We downloaded the data in mm so NCDC coverted that value to
@@ -114,8 +114,6 @@ def setup_station_data(
     # sort the now chaotic index
     station_data.sort_index(inplace=True)
 
-    cooptxt = coopid.replace(":", "")
-
     # generate the full index (every hour, ever day)
     fulldates = pandas.date_range(
         start=origin_date, end=future_date, freq=pandas.offsets.Hour(1)
@@ -186,7 +184,6 @@ def summarizeStorms(
     )
 
     if summary.shape[0] > 1:
-        secperhr = 60.0 * 60.0
         # compute storm durations
         summary["Duration Hours"] = summary.apply(
             lambda row: timediff(row, "End Date", "Start Date", asdays=False), axis=1
@@ -236,8 +233,6 @@ def availabilityByStation(
         for status, pct in zip(_statuses, _avail_pct.values)
     ]
 
-    cooptxt = coopid.replace(":", "")
-
     # reset in the index and compute year and month-day-hour representations of the date
     stationdata = stationdata.reset_index()[["index", "status"]]
     stationdata["Yr"] = stationdata["index"].apply(lambda d: d.strftime("%Y"))
@@ -271,7 +266,7 @@ def availabilityByStation(
     bounds = [-0.5, 0.5, 1.5, 2.5, 3.5]
     norm = colors.BoundaryNorm(bounds, cmap.N)
 
-    img = ax.pcolorfast(grid, cmap=cmap, norm=norm)
+    ax.pcolorfast(grid, cmap=cmap, norm=norm)
     ax.set_aspect(grid.shape[1] / grid.shape[0])
 
     ax.set_yticks(numpy.arange(grid.shape[0]) + 0.5)
@@ -328,7 +323,7 @@ def dataAvailabilityHeatmap(data, figsize=None):
     mdata = numpy.ma.masked_less(data.values, 1)
 
     ax = fig.add_subplot(gs[1])
-    img = ax.pcolorfast(mdata, cmap=cmap)
+    ax.pcolorfast(mdata, cmap=cmap)
     ax.set_xlabel("Year")
     ax.set_ylabel("Precipitation Gauge")
     ax.xaxis.tick_bottom()
@@ -350,7 +345,7 @@ def dataAvailabilityHeatmap(data, figsize=None):
     )
 
     cax = fig.add_subplot(gs[0])
-    cbar = colorbar.ColorbarBase(
+    colorbar.ColorbarBase(
         cax, cmap=cmap, norm=norm, orientation="horizontal", extend="min"
     )
     cax.invert_xaxis()
