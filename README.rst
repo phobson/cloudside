@@ -41,6 +41,40 @@ You can also fetch data from Portland's Hydra Network of rain gauges:
 or from the command line ::
 
     $ cloudside get-hydra Beaumont
+    
+Bigger Example
+--------------
+
+.. code:: python
+
+    import pandas 
+    import cloudside
+
+    def summarizer(g):
+        return pandas.Series({
+            'start': g['datetime'].min(),
+            'end': g['datetime'].max(),
+            'duration_hours': (g['datetime'].max() - g['datetime'].min()).total_seconds() / 3600,
+            precip_col: g[precip_col].sum()
+        })
+
+
+    def storm_totaller(df):
+        return (
+            df.query('storm > 0')
+              .reset_index()
+              .groupby(by=['storm'])
+              .apply(summarizer)
+              .assign(antecedent_hours=lambda df: (df['start'] - df['end'].shift()).dt.total_seconds() / 3600)
+              .assign(ends_on_weekday=lambda df: df['end'].dt.weekday < 5)
+        )
+        
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01, 'me@mydomain.com')
+    storms = cloudside.storms.parse_record(data, intereventHours=6, outputfreqMinutes=5, precipcol='precip_inches')
+    storm_stats = storm_totaller(storms)
+    with pandas.ExcelWriter('output.xlsx') as xl:
+        data.to_excel(xl, sheet_name='Weather Data')
+        storm_stats.to_excel(xl, sheet_name='Storm Stats')
 
 
 Basic History
