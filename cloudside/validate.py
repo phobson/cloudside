@@ -22,7 +22,7 @@ def axes_object(ax):
 
 
 def source(source):
-    """ checks that a *source* value is valid """
+    """checks that a *source* value is valid"""
     if source.lower() in ("wunderground", "wunder_nonairport"):
         raise NotImplementedError("wunderground support is borked")
     elif source.lower() not in ("asos",):
@@ -31,14 +31,14 @@ def source(source):
 
 
 def step(step):
-    """ checks that a *step* value is valid """
+    """checks that a *step* value is valid"""
     if step.lower() not in ("raw", "flat", "compile"):
         raise ValueError('step must be one of "raw" or "flat"')
     return step.lower()
 
 
 def file_status(filename):
-    """ confirms that a raw file isn't empty """
+    """confirms that a raw file isn't empty"""
     if os.path.exists(filename):
         with open(filename, "r") as testfile:
             line = testfile.readline()

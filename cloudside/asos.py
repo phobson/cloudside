@@ -68,13 +68,16 @@ class MetarParser(Metar.Metar):
 
     def asos_dict(self):
         if self.datetime is not None:
+            wind_dir = value_or_not(self.wind_dir)
+            if wind_dir == "VRB":
+                wind_dir = numpy.nan
             return Obs(
                 datetime=self.datetime.round("5min"),
                 raw_precipitation=value_or_not(self.precip_1hr),
                 temperature=value_or_not(self.temp),
                 dew_point=value_or_not(self.dewpt),
                 wind_speed=value_or_not(self.wind_speed),
-                wind_direction=value_or_not(self.wind_dir),
+                wind_direction=wind_dir,
                 air_pressure=value_or_not(self.press),
                 sky_cover=_process_sky_cover(self),
             )
