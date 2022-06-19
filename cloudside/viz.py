@@ -186,7 +186,7 @@ def temperature(dataframe, col="temperature", freq="hourly", how="mean", ax=None
 
     """
 
-    ylabel = u"%s Temperature (\xB0C)" % freq.title()
+    ylabel = "%s Temperature (\xB0C)" % freq.title()
     fig = _plotter(dataframe, col, ylabel, freq=freq, how=how, ax=ax)
     return fig
 
