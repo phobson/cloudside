@@ -359,7 +359,7 @@ def dataAvailabilityHeatmap(data, figsize=None):
 
 if __name__ == "__main__":
     filepath = "test.dat"
-    sep = "\s+"
+    sep = r"\s+"
     data_1hr = pandas.read_csv(
         filepath,
         sep=sep,

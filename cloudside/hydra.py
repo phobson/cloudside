@@ -31,7 +31,7 @@ def parse_file(filepath):
     """
 
     read_opts = {
-        "sep": "\s+",
+        "sep": r"\s+",
         "header": None,
         "parse_dates": ["Date"],
         "na_values": ["-"],

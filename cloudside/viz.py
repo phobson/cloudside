@@ -263,7 +263,7 @@ def _speed_labels(bins, units=None):
     labels = []
     for left, right in zip(bins[:-1], bins[1:]):
         if left == bins[0]:
-            labels.append("calm".format(right))
+            labels.append("calm")
         elif numpy.isinf(right):
             labels.append(">{} {}".format(left, units))
         else:

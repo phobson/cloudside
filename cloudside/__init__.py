@@ -1,10 +1,10 @@
-from .exporters import *
-from . import storms
-from . import viz
-from . import ncdc
-from . import asos
+from .exporters import *  # noqa
+from . import storms  # noqa
+from . import viz  # noqa
+from . import ncdc  # noqa
+from . import asos  # noqa
 
-from .tests import test, teststrict
+from .tests import test, teststrict  # noqa
 
 
 __author__ = "Paul Hobson"
