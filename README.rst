@@ -27,7 +27,7 @@ Basically I wanted a library that could do something like this:
     fig, rose_data = cloudside.viz.rose(data, magcol="wind_speed", dircol="wind_direction")
 
 .. image:: docs/img/rose.png
-  :width: 600
+  :width: 400
   :alt: KPDX Rose Plot
 
 And so ``cloudside`` does that.
