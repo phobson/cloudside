@@ -14,7 +14,7 @@ from cloudside.tests import get_test_file
 
 
 IMG_OPTS = dict(
-    tolerance=int(os.environ.get("MPL_IMGCOMP_TOLERANCE", 25)),
+    tolerance=int(os.environ.get("MPL_IMGCOMP_TOLERANCE", 37)),
     baseline_dir="baseline_images/viz_tests",
 )
 
