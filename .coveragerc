@@ -2,7 +2,6 @@
 [run]
 source = cloudside
 branch = True
-include = cloudside/*.py
 omit =
     cloudside/tests/*
 

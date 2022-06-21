@@ -26,5 +26,4 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test with pytest
       run: |
-        export MPL_IMGCOMP_TOLERANCE=37
-        python check_cloudside.py --mpl
+        pytest -x --mpl
