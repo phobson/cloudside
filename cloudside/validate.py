@@ -4,18 +4,27 @@ from matplotlib import axes
 import os
 
 
-def axes_object(ax):
+def axes_object(ax, polar=None):
     """Checks if a value if an Axes. If None, a new one is created.
     Both the figure and axes are returned (in that order).
 
     """
+    if polar is None:
+        polar = False
     if ax is None:
         fig = figure.Figure()
-        ax = fig.add_subplot(1, 1, 1)
+        ax = fig.add_subplot(1, 1, 1, polar=polar)
     elif isinstance(ax, axes.Axes):
         fig = ax.figure
     else:
         msg = "`ax` must be a matplotlib Axes instance or None"
+        raise ValueError(msg)
+
+    if polar and not "polar" in ax.name.lower():
+        msg = (
+            "`ax` must be a polar subplot created with polar=True or projection='polar'. "
+            "If you've renamed your axes object, you must include the substring 'polar'"
+        )
         raise ValueError(msg)
 
     return fig, ax

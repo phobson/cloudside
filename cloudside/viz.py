@@ -350,12 +350,14 @@ def _compute_rose(
     return raw_rose.reindex(index=_rows, columns=_cols, fill_value=0.0)
 
 
-def _draw_rose(rose, ax, palette=None, show_calm=True, show_legend=True, **other_opts):
+def _draw_rose(
+    rose, ax=None, palette=None, show_calm=True, show_legend=True, **other_opts
+):
     dir_degrees = numpy.array(rose.index.tolist())
     dir_rads, dir_width = _dir_degrees_to_radins(dir_degrees)
     palette = palette or DEEPCOLORS
 
-    fig = ax.figure
+    fig, ax = validate.axes_object(ax, polar=True)
 
     ax.set_theta_direction("clockwise")
     ax.set_theta_zero_location("N")
@@ -424,7 +426,7 @@ def rose(
     Parameters
     ----------
     dataframe : pandas.DataFrame
-    magcol, dircol : str, optional
+    magcol, dircol : str
         The names of the columns that contain the magnitude and direction,
         respectively.
     spd_bins : sequence of floats, optional
