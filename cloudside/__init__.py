@@ -1,12 +1,10 @@
-from .exporters import *
-from . import storms
-from . import viz
-from . import ncdc
-from . import asos
-
-from .tests import test, teststrict
+from .exporters import *  # noqa
+from . import storms  # noqa
+from . import viz  # noqa
+from . import ncdc  # noqa
+from . import asos  # noqa
 
 
 __author__ = "Paul Hobson"
 __email__ = "pmhobson@gmail.com"
-__version__ = "0.0.1"
+__version__ = "0.2.0"

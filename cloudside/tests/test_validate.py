@@ -7,8 +7,7 @@ import pandas.testing as pdtest
 
 from cloudside import validate
 
-from . import raises
-from cloudside.tests import get_test_file
+from cloudside.tests import get_test_file, raises  # noqa
 
 
 def test_axes_object_invalid():

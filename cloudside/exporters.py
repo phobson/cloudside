@@ -130,7 +130,8 @@ def NCDCFormat(dataframe, coopid, statename, col="Precip", filename=None):
     def makeNCDCRow(row, flags=None):
         newrow = row.dropna() * 100
         newrow = newrow.astype(int)
-        newrow = newrow.append(pandas.Series(newrow.sum(), index=[25]))
+        _last_row = pandas.Series(newrow.sum(), index=[25])
+        newrow = pandas.concat([newrow, _last_row])
 
         if flags is None:
             flags = [" "] * len(newrow)
@@ -275,4 +276,4 @@ def _obs_from_row(row):
     rowheader = ",".join([state_coopid, recordtype, element, units])
 
     rows = map(partial(_write_obs, rowheader, year, month, day), parsedObs)
-    return "".join(filter(lambda r: r is not None, rows))
+    return "".join(map(str, filter(lambda r: r is not None, rows)))

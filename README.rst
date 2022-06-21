@@ -23,8 +23,12 @@ Basically I wanted a library that could do something like this:
 .. code:: python
 
     import cloudside
-    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01, 'me@mydomain.com')
-    fig = cloudside.viz.rose(data)
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01', 'me@mydomain.com')
+    fig, rose_data = cloudside.viz.rose(data, magcol="wind_speed", dircol="wind_direction")
+
+.. image:: docs/img/rose.png
+  :width: 400
+  :alt: KPDX Rose Plot
 
 And so ``cloudside`` does that.
 After installation, you can also directly use it from the command line ::
@@ -41,13 +45,13 @@ You can also fetch data from Portland's Hydra Network of rain gauges:
 or from the command line ::
 
     $ cloudside get-hydra Beaumont
-    
+
 Bigger Example
 --------------
 
 .. code:: python
 
-    import pandas 
+    import pandas
     import cloudside
 
     def summarizer(g):
@@ -68,8 +72,8 @@ Bigger Example
               .assign(antecedent_hours=lambda df: (df['start'] - df['end'].shift()).dt.total_seconds() / 3600)
               .assign(ends_on_weekday=lambda df: df['end'].dt.weekday < 5)
         )
-        
-    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01, 'me@mydomain.com')
+
+    data = cloudside.asos.get_data('KPDX', '2012-12-01', '2015-05-01', 'me@mydomain.com')
     storms = cloudside.storms.parse_record(data, intereventHours=6, outputfreqMinutes=5, precipcol='precip_inches')
     storm_stats = storm_totaller(storms)
     with pandas.ExcelWriter('output.xlsx') as xl:

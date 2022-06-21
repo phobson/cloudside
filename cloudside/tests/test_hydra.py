@@ -10,7 +10,7 @@ import pytest
 import pandas.testing as pdtest
 
 from cloudside import hydra
-from cloudside.tests import get_test_file
+from cloudside.tests import get_test_file  # noqa
 
 
 @pytest.fixture
