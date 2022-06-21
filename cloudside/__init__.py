@@ -4,8 +4,6 @@ from . import viz  # noqa
 from . import ncdc  # noqa
 from . import asos  # noqa
 
-from .tests import test, teststrict  # noqa
-
 
 __author__ = "Paul Hobson"
 __email__ = "pmhobson@gmail.com"
