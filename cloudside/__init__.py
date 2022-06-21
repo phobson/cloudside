@@ -9,4 +9,4 @@ from .tests import test, teststrict  # noqa
 
 __author__ = "Paul Hobson"
 __email__ = "pmhobson@gmail.com"
-__version__ = "0.0.1"
+__version__ = "0.2.0"
