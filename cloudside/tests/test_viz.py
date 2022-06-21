@@ -10,7 +10,7 @@ import pytest
 import pandas.testing as pdtest
 
 from cloudside import viz
-from cloudside.tests import get_test_file
+from cloudside.tests import get_test_file  # noqa
 
 
 IMG_OPTS = dict(

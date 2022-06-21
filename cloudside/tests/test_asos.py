@@ -11,7 +11,7 @@ import numpy.testing as nptest
 import pandas.testing as pdtest
 
 from cloudside import asos
-from cloudside.tests import get_test_file
+from cloudside.tests import get_test_file  # noqa
 
 
 @pytest.fixture
@@ -218,6 +218,7 @@ def test_parse_file():
     datpath = pathlib.Path(get_test_file("sample_asos.dat"))
     csvpath = pathlib.Path(get_test_file("sample_asos.csv"))
     result = asos.parse_file(datpath)
+    assert result is not None
     expected = (
         pandas.read_csv(csvpath, parse_dates=True, index_col=["datetime"])
         .resample("5min")

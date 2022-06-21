@@ -5,7 +5,7 @@ import pytest
 import pandas.testing as pdtest
 
 from cloudside import storms
-from cloudside.tests import get_test_file
+from cloudside.tests import get_test_file # noqa
 
 
 @pytest.mark.parametrize(
