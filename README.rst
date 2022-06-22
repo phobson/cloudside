@@ -104,24 +104,18 @@ If you're using `environments <http://conda.pydata.org/docs/intro.html>`_
 managed through ``conda`` (recommended), this will
 get you started: ::
 
-    conda create --name=cloudside python=3.6 notebook pytest pandas matplotlib requests coverage
-
-Followed by: ::
-
-    conda activate cloudside
-    conda install metar --channel=conda-forge
+    conda create --name=cloudside python=3.8 notebook pytest pandas matplotlib requests coverage
 
 Installation
 ------------
 
-* Activate your ``conda`` environment;
-* Install via pip and git; and
+* Activate your ``conda`` environment
+* Install via pip
 
 ::
 
     conda activate cloudside
-    pip install git+https://github.com/Geosyntec/cloudside.git
-
+    pip install cloudside
 
 Testing
 -------
@@ -129,11 +123,11 @@ Testing
 Tests are run via ``pytest``. Run them all with: ::
 
     source activate cloudside # (omit "source" on Windows)
-    python -c "import cloudside; cloudside.test()"
+    pytest
 
 Documentation
 -------------
-We have `HTML docs built with sphinx <http://geosyntec.github.io/cloudside/>`_.
+We have forthcoming `HTML docs built with sphinx <http://geosyntec.github.io/cloudside/>`_.
 
 Development status
 ------------------
