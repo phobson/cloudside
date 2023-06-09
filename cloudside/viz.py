@@ -73,7 +73,6 @@ def _plotter(
     downward=False,
     fillna=None,
 ):
-
     if not hasattr(dataframe, col):
         raise ValueError("input `dataframe` must have a `%s` column" % col)
 
@@ -292,7 +291,6 @@ def _compute_rose(
     dir_labels=None,
     total_count=None,
 ):
-
     total_count = total_count or dataframe.shape[0]
     calm_count = dataframe[dataframe[magcol] <= calmspeed].shape[0]
 
