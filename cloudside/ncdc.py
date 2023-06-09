@@ -221,7 +221,6 @@ def summarizeStorms(
 def availabilityByStation(
     stationdata, stationname, coopid, baseyear=1947, figsize=None
 ):
-
     _avail = (
         stationdata.groupby(by=["status"])["flag"].count().reindex(range(4)).fillna(0)
     )
