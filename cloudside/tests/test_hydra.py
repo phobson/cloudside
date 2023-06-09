@@ -2,6 +2,7 @@ from pathlib import Path
 from io import StringIO
 from textwrap import dedent
 import tempfile
+import warnings
 
 import pandas
 
@@ -98,9 +99,11 @@ def expected_hydra():
 
 
 def test_parse_file(expected_hydra):
-    filepath = Path(get_test_file("sample_hydra.txt"))
-    result = hydra.parse_file(filepath)
-    pdtest.assert_frame_equal(expected_hydra, result)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        filepath = Path(get_test_file("sample_hydra.txt"))
+        result = hydra.parse_file(filepath)
+        pdtest.assert_frame_equal(expected_hydra, result)
 
 
 @mock.patch("requests.get")

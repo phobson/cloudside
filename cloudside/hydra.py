@@ -35,6 +35,7 @@ def parse_file(filepath):
         "header": None,
         "parse_dates": ["Date"],
         "na_values": ["-"],
+        "date_format": "%d-%b-%Y",
     }
 
     with Path(filepath).open("r") as fr:
