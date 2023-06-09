@@ -61,6 +61,7 @@ def test_dumpSWMM5Format_results(fivemin, freq, expected_file):
         pdtest.assert_frame_equal(
             data.reset_index(drop=True),
             pandas.read_table(get_test_file(expected_file), sep="\t"),
+            check_dtype=False,  # pragma: int32 vs int64
         )
 
 
