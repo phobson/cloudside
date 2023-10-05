@@ -86,12 +86,16 @@ def test_parse_record(fname):
     "fname",
     ["teststorm_simple.csv", "teststorm_firstobs.csv", "teststorm_singular.csv"],
 )
-def test_parse_record_fast(fname):
+@pytest.mark.parametrize("keepzeroes", [True, False])
+def test_parse_record_fast(fname, keepzeroes):
     df = prep_storm_record(fname).drop(columns=["storm", "influent", "effluent"])
     expected = storms.parse_record(df, 6, 5, precipcol="rain")
-    result = storms.parse_record_fast(df, 6, 5, precipcol="rain", keepzeros=False)
+    result = storms.parse_record_fast(df, 6, 5, precipcol="rain", keepzeroes=keepzeroes)
+
+    if not keepzeroes:
+        expected = expected.loc[lambda df: df["rain"] > 0]
+
     pdtest.assert_series_equal(
-        expected.loc[lambda df: df["rain"]> 0, "storm"].astype(numpy.int32),
-        # expected["storm"].astype(numpy.int32),
+        expected["storm"].astype(numpy.int32),
         result["storm"].astype(numpy.int32)
     )

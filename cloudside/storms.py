@@ -163,15 +163,16 @@ def parse_record_fast(
     outputfreqMinutes,
     precipcol=None,
     stormcol="storm",
-    keepzeros=False,
+    keepzeroes=False,
 ):
-    """Parses the hydrologic data into distinct storms.
+    """Parses the hydrologic data into distinct storms, but faster.
 
     In this context, a storm is defined as starting whenever the
     hydrologic records shows non-zero precipitation or [in|out]flow
     from the BMP after a minimum inter-event dry period duration
     specified in the the function call. The storms ends the observation
-    *after* the last non-zero precipitation or flow value.
+    *after* the last non-zero precipitation or flow value (see `keepzeroes`
+    for caveats).
 
     Parameters
     ----------
@@ -183,9 +184,7 @@ def parse_record_fast(
         Name of column in `hydrodata` containing precipiation data.
     stormcol : string (default = 'storm')
         Name of column in `hydrodata` indentifying distinct storms.
-    debug : bool (default = False)
-        If True, diagnostic columns will not be dropped prior to
-        returning the dataframe of parsed_storms.
+
 
     Writes
     ------
@@ -194,37 +193,44 @@ def parse_record_fast(
     Returns
     -------
     parsed_storms : pandas.DataFrame
-        Copy of the origin `hydrodata` DataFrame, but resampled to a
-        fixed frequency, columns possibly renamed, and a `storm` column
-        added to denote the storm to which each record belongs. Records
-        where `storm` == 0 are not a part of any storm.
+        Copy of the original `data` DataFrame, but only with wet records
+        and a new storm ID column. You can get the full dataframe back, but
+        see the caveats for the `keepzeroes` param.
 
     """
     ie_period = timedelta(hours=intereventHours)
 
+    freq = pandas.offsets.Minute(outputfreqMinutes)
+    data = data.resample(freq).asfreq()
     parsed = (
         data
-            .loc[lambda df: df[precipcol].notnull() & df[precipcol] > 0]
-            .assign(**{
-                stormcol: lambda df:
-                    df.index.to_series()
-                      .diff()
-                      .gt(ie_period)
-                      .pipe(_set_first_start)
-                      .cumsum()
-            })
+        .loc[lambda df: df[precipcol].notnull() & df[precipcol] > 0]
+        .assign(**{
+            stormcol: lambda df:
+                df.index.to_series()
+                    .diff()
+                    .gt(ie_period)
+                    .pipe(_set_first_start)
+                    .cumsum()
+        })
     )
-    if keepzeros:
-        out_freq = pandas.offsets.Minute(outputfreqMinutes)
-        fill_limit = int(intereventHours * 60 / outputfreqMinutes)
-        parsed = (
-            parsed.reindex(data.index)
-                .resample(out_freq).asfreq()
-                .assign(**{
-                    precipcol: lambda df: df[precipcol].fillna(0),
-                    stormcol: lambda df: df[stormcol].fillna(method="ffill", limit=fill_limit).fillna(0).astype(int)
-                })
-        )
-        # pandas.DataFrame.fillna
 
-    return parsed
+    if not keepzeroes:
+        return parsed
+
+    else:
+        storms = (
+            parsed
+                .assign(dt=lambda df: df.index)
+                .groupby(stormcol, as_index=False)["dt"].agg(["min", "max"])
+                .pipe(lambda df: pandas.Series(
+                    df[stormcol].values,
+                    index=pandas.IntervalIndex.from_arrays(
+                        df["min"], df["max"] + freq, closed="both"
+                    ), name=stormcol)
+                )
+                .reindex(data.index)
+                .fillna(0).astype(int)
+        )
+
+        return data.assign(**{stormcol: storms})
