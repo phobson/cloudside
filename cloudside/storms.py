@@ -143,7 +143,9 @@ def parse_record(
 
     # fix trailing zeroes on the last storm
     last_storm = res[stormcol].max()
-    last_storm_end = res[res[stormcol].eq(last_storm) & res[precipcol].gt(0)].index.max() + (2 * freq)
+    last_storm_end = res.loc[
+        res[stormcol].eq(last_storm) & res[precipcol].gt(0)
+    ].index.max() + (2 * freq)
     res.loc[last_storm_end:, stormcol] = 0
 
     if not debug:
