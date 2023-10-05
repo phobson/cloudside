@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy
 import pandas
 
@@ -74,7 +76,7 @@ def parse_record(
     Returns
     -------
     parsed_storms : pandas.DataFrame
-        Copy of the origin `hydrodata` DataFrame, but resampled to a
+        Copy of the original `data` DataFrame, but resampled to a
         fixed frequency, columns possibly renamed, and a `storm` column
         added to denote the storm to which each record belongs. Records
         where `storm` == 0 are not a part of any storm.
@@ -139,7 +141,90 @@ def parse_record(
         )
     )
 
+    # fix trailing zeroes on the last storm
+    last_storm = res[stormcol].max()
+    last_storm_end = res[res[stormcol].eq(last_storm) & res[precipcol].gt(0)].index.max() + (2 * freq)
+    res.loc[last_storm_end:, stormcol] = 0
+
     if not debug:
         res = res.loc[:, res.columns.map(lambda c: not c.startswith("__"))]
 
     return res
+
+
+def _set_first_start(ser):
+    ser.iloc[0] = True
+    return ser
+
+
+def parse_record_fast(
+    data,
+    intereventHours,
+    outputfreqMinutes,
+    precipcol=None,
+    stormcol="storm",
+    keepzeros=False,
+):
+    """Parses the hydrologic data into distinct storms.
+
+    In this context, a storm is defined as starting whenever the
+    hydrologic records shows non-zero precipitation or [in|out]flow
+    from the BMP after a minimum inter-event dry period duration
+    specified in the the function call. The storms ends the observation
+    *after* the last non-zero precipitation or flow value.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+    intereventHours : float
+        The Inter-Event dry duration (in hours) that classifies the
+        next hydrlogic activity as a new event.
+    precipcol : string, optional (default = None)
+        Name of column in `hydrodata` containing precipiation data.
+    stormcol : string (default = 'storm')
+        Name of column in `hydrodata` indentifying distinct storms.
+    debug : bool (default = False)
+        If True, diagnostic columns will not be dropped prior to
+        returning the dataframe of parsed_storms.
+
+    Writes
+    ------
+    None
+
+    Returns
+    -------
+    parsed_storms : pandas.DataFrame
+        Copy of the origin `hydrodata` DataFrame, but resampled to a
+        fixed frequency, columns possibly renamed, and a `storm` column
+        added to denote the storm to which each record belongs. Records
+        where `storm` == 0 are not a part of any storm.
+
+    """
+    ie_period = timedelta(hours=intereventHours)
+
+    parsed = (
+        data
+            .loc[lambda df: df[precipcol].notnull() & df[precipcol] > 0]
+            .assign(**{
+                stormcol: lambda df:
+                    df.index.to_series()
+                      .diff()
+                      .gt(ie_period)
+                      .pipe(_set_first_start)
+                      .cumsum()
+            })
+    )
+    if keepzeros:
+        out_freq = pandas.offsets.Minute(outputfreqMinutes)
+        fill_limit = int(intereventHours * 60 / outputfreqMinutes)
+        parsed = (
+            parsed.reindex(data.index)
+                .resample(out_freq).asfreq()
+                .assign(**{
+                    precipcol: lambda df: df[precipcol].fillna(0),
+                    stormcol: lambda df: df[stormcol].fillna(method="ffill", limit=fill_limit).fillna(0).astype(int)
+                })
+        )
+        # pandas.DataFrame.fillna
+
+    return parsed

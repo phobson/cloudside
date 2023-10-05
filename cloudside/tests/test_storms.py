@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy
 import pandas
 
@@ -77,4 +79,19 @@ def test_parse_record(fname):
     ).dropna(subset=["influent", "effluent"])
     pdtest.assert_series_equal(
         result["storm"].astype(numpy.int32), expected.astype(numpy.int32)
+    )
+
+
+@pytest.mark.parametrize(
+    "fname",
+    ["teststorm_simple.csv", "teststorm_firstobs.csv", "teststorm_singular.csv"],
+)
+def test_parse_record_fast(fname):
+    df = prep_storm_record(fname).drop(columns=["storm", "influent", "effluent"])
+    expected = storms.parse_record(df, 6, 5, precipcol="rain")
+    result = storms.parse_record_fast(df, 6, 5, precipcol="rain", keepzeros=False)
+    pdtest.assert_series_equal(
+        expected.loc[lambda df: df["rain"]> 0, "storm"].astype(numpy.int32),
+        # expected["storm"].astype(numpy.int32),
+        result["storm"].astype(numpy.int32)
     )
