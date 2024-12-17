@@ -1,11 +1,11 @@
-from pkg_resources import resource_filename
+from importlib import resources
 from contextlib import contextmanager
 
 import pytest
 
 
 def get_test_file(filename):
-    return resource_filename("cloudside.tests.data", filename)
+    return resources.files("cloudside.tests.data").joinpath(filename)
 
 
 def raises(error):
