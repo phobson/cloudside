@@ -511,11 +511,6 @@ def rose(
     return fig, rose
 
 
-@numpy.deprecate
-def windRose(dataframe, spdcol="wind_speed", dircol="wind_dir", **kwargs):
-    return rose(dataframe, spdcol, dircol, **kwargs)
-
-
 def _pct_fmt(x, pos=0):
     return "%0.1f%%" % (100 * x)
 
