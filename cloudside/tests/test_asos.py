@@ -143,7 +143,7 @@ def test_fetch_files(ftp_login, ftp_retr):
         )
         assert isinstance(raw_paths, filter)
         assert all([(isinstance(rp, pathlib.Path) or (rp is None)) for rp in raw_paths])
-        ftp_login.assert_called_once_with("tester@cloudside.net")
+        ftp_login.assert_called_once_with(passwd="tester@cloudside.net")
         assert ftp_retr.call_count == 5
 
 
