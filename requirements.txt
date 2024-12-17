@@ -1,7 +1,7 @@
 click
 requests
-numpy
+numpy >= 2
 matplotlib
-pandas
+pandas >= 2
 tqdm
 metar >= 1.5
