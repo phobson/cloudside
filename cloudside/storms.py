@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy
 import pandas
 
@@ -74,7 +76,7 @@ def parse_record(
     Returns
     -------
     parsed_storms : pandas.DataFrame
-        Copy of the origin `hydrodata` DataFrame, but resampled to a
+        Copy of the original `data` DataFrame, but resampled to a
         fixed frequency, columns possibly renamed, and a `storm` column
         added to denote the storm to which each record belongs. Records
         where `storm` == 0 are not a part of any storm.
@@ -138,6 +140,13 @@ def parse_record(
             }
         )
     )
+
+    # fix trailing zeroes on the last storm
+    last_storm = res[stormcol].max()
+    last_storm_end = res.loc[
+        res[stormcol].eq(last_storm) & res[precipcol].gt(0)
+    ].index.max() + (2 * freq)
+    res.loc[last_storm_end:, stormcol] = 0
 
     if not debug:
         res = res.loc[:, res.columns.map(lambda c: not c.startswith("__"))]

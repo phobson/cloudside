@@ -162,25 +162,6 @@ def test_rose(test_data):
 
 
 @pytest.mark.mpl_image_compare(**IMG_OPTS)
-def test_windrose_short(short_data):
-    fig, ax1, ax2 = _make_polar_fig()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        _ = viz.windRose(
-            short_data.assign(WindSpd=short_data["WindSpd"] * 1.15),
-            spd_units="mph",
-            ax=ax1,
-            spdcol="WindSpd",
-            dircol="WindDir",
-        )
-        _ = viz.windRose(
-            short_data, spdcol="WindSpd", dircol="WindDir", spd_units="kt", ax=ax2
-        )
-    quiet_layout(fig)
-    return fig
-
-
-@pytest.mark.mpl_image_compare(**IMG_OPTS)
 def test_rose_short(short_data):
     fig, ax1, ax2 = _make_polar_fig()
     _ = viz.rose(
